@@ -1,0 +1,5 @@
+#!/bin/sh
+
+g++ -c midi2note.cpp -o midi2note.o
+g++ midi2note.o -o midi2note
+exit 0
