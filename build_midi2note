@@ -1,5 +1,6 @@
 #!/bin/sh
+prog=$1
 
-g++ -c midi2note.cpp -o midi2note.o
-g++ midi2note.o -o midi2note
+g++ -c ${prog}.cpp -o ${prog}.o
+g++ ${prog}.o -o ${prog}
 exit 0
