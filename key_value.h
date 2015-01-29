@@ -3,6 +3,7 @@
 #include <vector>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 using namespace std;
 
 struct key_value {
@@ -53,4 +54,24 @@ float value_for_key(char* key, vector<key_value> &items) {
         }
     }
     return(0.0);
+}
+
+float standard(vector<key_value> &items) {
+    float st = 0;
+    for ( int i = 0; i < items.size(); i++ ) {
+        st += items[i].val*items[i].val;
+    }
+    return sqrtf(st);
+}
+
+float x_standard(vector<key_value> &items_a, vector<key_value> &items_b) {
+    float xst = 0;
+    for ( int i = 0; i < items_a.size(); i++ ) {
+        xst += items_a[i].val*value_for_key(items_a[i].key, items_b);
+    }
+    return xst;
+}
+
+float correlation(vector<key_value> &items_a, vector<key_value> &items_b) {
+        return x_standard(items_a, items_b)/(standard(items_a)*standard(items_b));
 }
