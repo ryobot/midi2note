@@ -8,37 +8,18 @@ using namespace std;
 
 #include "note_map.h"
 
-var_data varData[2];
-vector<key_value> items;
-char buf[256];
+vector<key_value> map;
+vector<notes> notes;
 
 int main(int argc, char *argv[])
 {
     if ( argc < 1 ) {
-        printf("usage : note2map [txt note file]\n", argv[1]);
+        printf("usage : note2map [txt note file]\n");
         exit(1);
     }
-    FILE *f;
-    if ( NULL == ( f = fopen(argv[1], "r"))) {
-        printf("file %s not found\n", argv[1]);
-        exit(1);
+    load_note_file(argv[1], notes);
+    note2map(notes, map);
+    for (int i = 0; i < map.size(); i++ ) {
+        printf("%.2f,%s\n", map[i].val, map[i].key);
     }
-    int current = 0;
-    int prev = 1;
-    strcpy(buf, "000000 |           |           |           |           |           |           |");
-    make_vars(buf, varData[prev]);
-    while( fgets(buf, 255, f) != NULL ) {
-        // variations:
-        make_vars(buf, varData[current]);
-        make_maps(varData[prev], varData[current], items);
-        // output:
-        for ( int i = 0; i < items.size(); i++ ) {
-            printf("%.2f,%s\n", items[i].val, items[i].key);
-        }
-        // toggle buffer:
-        int tmp = current;
-        current = prev;
-        prev = tmp;
-    }
-    fclose(f);
 }

@@ -1,4 +1,7 @@
 // note_map.h
+#ifndef NOTE_MAP_H
+#define NOTE_MAP_H
+
 #include <cstdlib>
 #include <vector>
 #include <stdio.h>
@@ -6,6 +9,7 @@
 using namespace std;
 
 #include "key_value.h"
+#include "notes.h"
 
 #define MIN_NOTE_POS 7
 #define MAX_NOTE_POS 80
@@ -15,17 +19,7 @@ struct var {
     char str[256];
     int note_cnt;
     
-    int putstr(char* buf) {
-        strcpy(str, buf);
-        int cnt = 0;
-        for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
-            if ( str[i] == 'o' || str[i] == '+' ) {
-                cnt++;
-            }
-        }
-        note_cnt = cnt;
-        return cnt;
-    }
+    int putstr(char* buf);
 };
 
 struct var_data {
@@ -38,109 +32,12 @@ struct var_data {
     }
 };
 
-int get_vars(char* buf, var_data& vars ) {
-    vars.note_pos.clear();
-    for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
-        if ( buf[i] == 'o' || buf[i] == '+' ) {
-            vars.note_pos.push_back(i);
-        }
-    }
-    return vars.note_pos.size();
-}
+int get_vars(char* buf, var_data& vars );
+int make_vars(char* buf, var_data& vars);
+bool is_note_ch(char ch);
+bool is_possible_map(char* buf_prev, char* buf_cur, char* org_prev, char* org_cur);
+int make_map(char* buf_prev, char* buf_cur, float val, vector<key_value> &items);
+int make_maps(var_data &prev, var_data &cur, vector<key_value> &items);
+int note2map(vector<notes> &notes, vector<key_value> &map);
 
-int make_vars(char* buf, var_data& vars) {
-    vars.strs.clear();
-    int num_pos = get_vars(buf, vars);
-    // original:
-    var newstr;
-    newstr.putstr(buf);
-    vars.strs.push_back(newstr);
-    // missings:
-    int patterns = 1;
-    for (int i = 0; i < num_pos; i++) {
-        patterns *= 2;
-    }
-    // no notes (i = patterns - 1) is not a variation:
-    for (int i = 1; i < patterns - 1; i++) {
-        newstr.putstr(buf);
-        for (int pos = 0; pos < num_pos; pos++) {
-            if ( (i >> pos) % 2 ) {
-                newstr.str[vars.note_pos[pos]] = ' ';
-                newstr.note_cnt--;
-            }
-        }
-        vars.strs.push_back(newstr);
-    }
-    return vars.strs.size();
-}
-
-bool is_note_ch(char ch) {
-    if ( ch == ' ' || ch == '-' || ch == '|' ) {
-        return false;
-    }
-    return true;
-}
-
-bool is_possible_map(char* buf_prev, char* buf_cur, char* org_prev, char* org_cur) {
-    for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
-        // cannot continue note without previous note:
-        if ( !is_note_ch(buf_prev[i]) && buf_cur[i] == '+') {
-            return false;
-        }
-        // variations continue -> off is not valid:
-        if ( is_note_ch(buf_prev[i]) && org_cur[i] == '+' && buf_cur[i] != '+' ) {
-            return false;
-        }
-    }
-    return true;
-}
-
-int make_map(char* buf_prev, char* buf_cur, float val, vector<key_value> &items) {
-    key_value item;
-    char wbuf[16];
-    strcpy(item.key, "");
-    int offset = NOTE_NUM_OFFSET - MIN_NOTE_POS;
-    // previous notes:
-    for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
-        if ( buf_prev[i] == 'o' ) {
-            sprintf(wbuf, "n%03d", i + offset);
-            strcat(item.key, wbuf);
-        }
-        if ( buf_prev[i] == '+' ) {
-            sprintf(wbuf, "c%03d", i + offset);
-            strcat(item.key, wbuf);
-        }
-    }
-    strcat(item.key, ">");
-    // current notes:
-    for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
-        if ( buf_cur[i] == 'o' ) {
-            sprintf(wbuf, "n%03d", i + offset);
-            strcat(item.key, wbuf);
-        }
-        if ( buf_cur[i] == '+' ) {
-            sprintf(wbuf, "c%03d", i + offset);
-            strcat(item.key, wbuf);
-        }
-    }
-    item.val = val;
-    items.push_back(item);
-}
-
-int make_maps(var_data &prev, var_data &cur, vector<key_value> &items) {
-    items.clear();
-    float total = (float)(prev.note_cnt() + cur.note_cnt());
-    for (int i = 0; i < prev.strs.size(); i++) {
-        for (int j = 0; j < cur.strs.size(); j++) {
-            if ( i == 0 && j == 0 ) {
-                make_map(prev.strs[0].str, cur.strs[0].str, 1.0, items);
-            }
-            else {
-                if ( is_possible_map(prev.strs[i].str, cur.strs[j].str, prev.strs[0].str, cur.strs[0].str) ) {
-                    float val = (float)(prev.strs[i].note_cnt + cur.strs[j].note_cnt)/(float)total;
-                    make_map(prev.strs[i].str, cur.strs[j].str, val, items);
-                }
-            }
-        }
-    }
-}
+#endif
