@@ -19,6 +19,7 @@ int main(int argc, char *argv[])
     }
     load_note_file(argv[1], notes);
     note2map(notes, map);
+    map2reduce(map);
     for (int i = 0; i < map.size(); i++ ) {
         printf("%.2f,%s\n", map[i].val, map[i].key);
     }

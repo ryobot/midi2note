@@ -11,8 +11,8 @@ using namespace std;
 #include "key_value.h"
 #include "notes.h"
 
-#define MIN_NOTE_POS 7
-#define MAX_NOTE_POS 80
+#define MIN_NOTE_POS 9
+#define MAX_NOTE_POS 82
 #define NOTE_NUM_OFFSET 24
 
 struct var {

@@ -3,9 +3,9 @@
 #include "notes.h"
 
 void notes::init (char* buf) {
-    strcpy(note, buf);
     char tokens[256];
     strcpy(tokens, buf);
+    strcpy(note, strtok(tokens, "\n"));
     char *valstr = strtok(tokens, ", \n");
     time = atoi(valstr);
 }
@@ -27,4 +27,9 @@ int load_note_file(char* filename, vector<notes> &items) {
     }
     fclose(f);
     return(items.size());
+}
+
+char* get_last_notes(char* buf, vector<notes> &items) {
+    strcpy(buf, items[items.size() - 1].note);
+    return buf;
 }

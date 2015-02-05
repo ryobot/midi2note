@@ -129,7 +129,7 @@ int note2map(vector<notes> &notes, vector<key_value> &map) {
     char buf[256];
     
     map.clear();
-    strcpy(buf, "000000 |           |           |           |           |           |           |");
+    strcpy(buf, "000000 : |           |           |           |           |           |           |");
     make_vars(buf, varData[prev]);
     for (int j = 0; j < notes.size(); j++ ) {
         // variations:

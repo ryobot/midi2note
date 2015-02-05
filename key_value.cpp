@@ -38,6 +38,49 @@ int load_key_value_file(char* filename, vector<key_value> &items, bool reduced) 
     return(0);
 }
 
+int mapcopy(vector<key_value> &dst, vector<key_value> &src) {
+    dst.clear();
+    copy(src.begin(), src.end(), back_inserter(dst));
+    return dst.size();
+}
+
+int map2reduce(vector<key_value> &items) {
+    vector<key_value> reduced;
+    key_value item;
+    for ( int i = 0; i < items.size(); i++ ) {
+        bool found = false;
+        for ( int j = 0; j < reduced.size(); j++ ) {
+            if ( strcmp(items[i].key, reduced[j].key) == 0 ) {
+                reduced[j].val += items[i].val;
+                found = true;
+                break;
+            }
+        }
+        if ( found ) continue;
+        strcpy(item.key, items[i].key);
+        item.val = items[i].val;
+        reduced.push_back(item);
+    }
+    mapcopy(items, reduced);
+    return items.size();
+}
+
+int add_map(vector<key_value> &items, vector<key_value> &add) {
+    for ( int i = 0; i < add.size(); i++ ) {
+        bool found = false;
+        for ( int j = 0; j < items.size(); j++ ) {
+            if ( strcmp(add[i].key, items[j].key) == 0 ) {
+                items[j].val += add[i].val;
+                found = true;
+                break;
+            }
+        }
+        if ( found ) continue;
+        items.push_back(add[i]);
+    }
+    return items.size();
+}
+
 float value_for_key(char* key, vector<key_value> &items) {
     for ( int i = 0; i < items.size(); i++ ) {
         if ( strcmp(items[i].key, key) == 0 ) {
