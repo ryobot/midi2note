@@ -87,6 +87,7 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
     //float cur_xcor = correlation(map, ref);
     //printf("cur xcor : %.4f\n", cur_xcor);
     float max_xcor = 0.0;
+    vector<key_value> max_items_add;
     vector<key_value> items_add;
     vector<key_value> items_tmp;
     var_data lastVar, newVar;
@@ -106,10 +107,12 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
             //printf("%s - %.4f\n", ng.buf, xcor);
             max_xcor = xcor;
             strcpy(new_note.note, ng.buf);
+            mapcopy(max_items_add, items_add);
         }
         //if ( cnt++ > 100 ) break;
     }
     new_note.time = last_note.time + 240;
+    add_map(map, max_items_add);
     return(max_xcor);
 }
 
