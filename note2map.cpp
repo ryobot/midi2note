@@ -23,4 +23,8 @@ int main(int argc, char *argv[])
     for (int i = 0; i < map.size(); i++ ) {
         printf("%.2f,%s\n", map[i].val, map[i].key);
     }
+    char mask[256];
+    int maskCnt = note2mask(notes, mask);
+    printf("note mask : %d\n", maskCnt);
+    printf("%s\n", mask);
 }

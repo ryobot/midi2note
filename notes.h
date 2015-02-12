@@ -16,5 +16,6 @@ struct notes {
 };
 
 int load_note_file(char* filename, vector<notes> &items);
+int load_mask_file(char* filename, char* mask);
 
 #endif

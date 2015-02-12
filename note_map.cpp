@@ -146,3 +146,21 @@ int note2map(vector<notes> &notes, vector<key_value> &map) {
     }
     return(map.size());
 }
+
+int note2mask(vector<notes> &notes, char* mask) {
+    strcpy(mask, "000000 : |           |           |           |           |           |           |");
+    for (int j = 0; j < notes.size(); j++ ) {
+        for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
+            if ( notes[j].note[i] == 'o' ) {
+                mask[i] = 'o';
+            }
+        }
+    }
+    int cnt = 0;
+    for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
+        if ( mask[i] == 'o' ) {
+            cnt++;
+        }
+    }
+    return(cnt);
+}
