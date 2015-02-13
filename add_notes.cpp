@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
     // load note mask:
     char mask[256];
     load_mask_file(argv[3], mask);
-    printf("-- note mask --\n%s\n---------------\n", mask);
+    //printf("-- note mask --\n%s\n---------------\n", mask);
     
     // note2map
     note2map(cur_notes, cur_map);
@@ -152,11 +152,13 @@ int main(int argc, char *argv[])
     notes new_note;
     notes last_note = cur_notes.back();
     float xcor = correlation(cur_map, ref_map);
-    printf("%s - %.4f\n", last_note.note, xcor);
+    //printf("%s - %.4f\n", last_note.note, xcor);
+    printf("%s\n", last_note.note);
     // new frames:
     for (int i = 0; i < num_frames; i++ ) {
         xcor = make_new_frame(new_note, last_note, cur_map, ref_map, mask, xcor);
-        printf("%s - %.4f\n", new_note.note, xcor);
+        //printf("%s - %.4f\n", new_note.note, xcor);
+        printf("%s\n", new_note.note);
         cur_notes.push_back(new_note);
         last_note = cur_notes.back();
     }

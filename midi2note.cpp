@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
                     for ( int i = 0; i < 72; i++) {
                         if ( nx[i] == ' ' ) nx[i] = '-';
                     }
-                   printf("\n%06d : %s", t, nx);
+                    printf("\n%06d : %s", t, nx);
                 } else {
                     printf("\n%06d : %s", t, n);
                 }
