@@ -106,22 +106,29 @@ int make_map(char* buf_prev, char* buf_cur, float val, vector<key_value> &items)
 int make_maps(var_data &prev, var_data &cur, vector<key_value> &items) {
     items.clear();
     float total = (float)(prev.note_cnt() + cur.note_cnt());
+    int possible_map_cnt = 0;
     for (int i = 0; i < prev.strs.size(); i++) {
         for (int j = 0; j < cur.strs.size(); j++) {
             if ( i == 0 && j == 0 ) {
                 make_map(prev.strs[0].str, cur.strs[0].str, 1.0, items);
+                possible_map_cnt++;
             }
             else {
                 if ( is_possible_map(prev.strs[i].str, cur.strs[j].str, prev.strs[0].str, cur.strs[0].str) ) {
-                    float val = (float)(prev.strs[i].note_cnt + cur.strs[j].note_cnt)/(float)total;
+                    //float val = (float)(prev.strs[i].note_cnt + cur.strs[j].note_cnt)/(float)total;
+                    float val = 1.0;
                     make_map(prev.strs[i].str, cur.strs[j].str, val, items);
+                    possible_map_cnt++;
                 }
             }
         }
     }
+    for (int i = 0; i < items.size(); i++) {
+        items[i].val /= (float)possible_map_cnt;
+    }
 }
 
-int note2map(vector<notes> &notes, vector<key_value> &map) {
+int note2map(vector<notes> &notes, vector<key_value> &map, int timing_res) {
     vector<key_value> items;
     var_data varData[2];
     int current = 0;
@@ -136,7 +143,16 @@ int note2map(vector<notes> &notes, vector<key_value> &map) {
         make_vars(notes[j].note, varData[current]);
         make_maps(varData[prev], varData[current], items);
         // output:
+        char timing_str[16];
+        if ( timing_res ) {
+            int timing = (notes[j].time / 240) % timing_res;
+            sprintf(timing_str, "t%d%d", timing_res, timing);
+        }
+        else {
+            strcpy(timing_str, "t00");
+        }
         for ( int i = 0; i < items.size(); i++ ) {
+            strcat(items[i].key, timing_str);
             map.push_back(items[i]);
         }
         // toggle buffer:

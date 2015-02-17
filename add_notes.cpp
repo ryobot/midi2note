@@ -12,7 +12,7 @@ vector<key_value> ref_map;
 vector<key_value> cur_map;
 vector<notes> cur_notes;
 
-#define MAX_NOTES_GENERATOR 3
+#define MAX_NOTES_GENERATOR 4
 //#define MAX_NOTE_POS_TMP 20
 
 struct note_generator {
@@ -28,7 +28,7 @@ struct note_generator {
     void init(notes &last_note, char* _mask) {
         strcpy(mask, _mask);
         for(int i = 0; i < MAX_NOTES_GENERATOR; i++) {
-            index[i] = MIN_NOTE_POS + i;
+            index[i] = MIN_NOTE_POS + i*12;
             type[i] = 'o';
         }
         strcpy(ref, last_note.note);
@@ -47,6 +47,7 @@ struct note_generator {
             if ( in > 0 ) {
                 iterate(in - 1);
                 index[in] = index[in - 1] + 1;
+                if ( index[in] < MIN_NOTE_POS + in*12 ) index[in] = MIN_NOTE_POS + in*12;
             } else {
                 completed = true;
             }
@@ -92,6 +93,17 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
     vector<key_value> items_tmp;
     var_data lastVar, newVar;
     make_vars(last_note.note, lastVar);
+    new_note.time = last_note.time + 240;
+    char timing_str[16];
+    int timing_res = 4;
+    if ( timing_res ) {
+        int timing = (new_note.time / 240) % timing_res;
+        sprintf(timing_str, "t%d%d", timing_res, timing);
+    }
+    else {
+        strcpy(timing_str, "t00");
+    }
+
     note_generator ng;
     ng.init(last_note, mask);
     int cnt = 0;
@@ -101,6 +113,9 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
         make_vars(ng.buf, newVar);
         make_maps(lastVar, newVar, items_add);
         mapcopy(items_tmp, map);
+        for ( int i = 0; i < items_add.size(); i++ ) {
+            strcat(items_add[i].key, timing_str);
+        }
         add_map(items_tmp, items_add);
         float xcor = correlation(items_tmp, ref);
         if ( xcor > max_xcor ) {
@@ -111,7 +126,6 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
         }
         //if ( cnt++ > 100 ) break;
     }
-    new_note.time = last_note.time + 240;
     add_map(map, max_items_add);
     return(max_xcor);
 }
@@ -123,8 +137,12 @@ int main(int argc, char *argv[])
         exit(1);
     }
     int num_frames = 16;
-    if ( argc == 5 ) {
+    if ( argc >= 5 ) {
         num_frames = atoi(argv[4]);
+    }
+    bool verbose = false;
+    if ( argc == 6 && strcmp(argv[5], "-v") == 0 ) {
+        verbose = true;
     }
     bool reduced = true;
     
@@ -134,8 +152,9 @@ int main(int argc, char *argv[])
     // load note mask:
     char mask[256];
     load_mask_file(argv[3], mask);
-    //printf("-- note mask --\n%s\n---------------\n", mask);
-    
+    if ( verbose ) {
+        printf("-- note mask --\n%s\n---------------\n", mask);
+    }
     // note2map
     note2map(cur_notes, cur_map);
     
@@ -152,13 +171,13 @@ int main(int argc, char *argv[])
     notes new_note;
     notes last_note = cur_notes.back();
     float xcor = correlation(cur_map, ref_map);
-    //printf("%s - %.4f\n", last_note.note, xcor);
-    printf("%s\n", last_note.note);
+    if ( verbose ) printf("%s - %.4f\n", last_note.note, xcor);
+    else printf("%s\n", last_note.note);
     // new frames:
     for (int i = 0; i < num_frames; i++ ) {
         xcor = make_new_frame(new_note, last_note, cur_map, ref_map, mask, xcor);
-        //printf("%s - %.4f\n", new_note.note, xcor);
-        printf("%s\n", new_note.note);
+        if ( verbose ) printf("%s - %.4f\n", new_note.note, xcor);
+        else printf("%s\n", new_note.note);
         cur_notes.push_back(new_note);
         last_note = cur_notes.back();
     }

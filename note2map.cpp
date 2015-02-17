@@ -18,13 +18,15 @@ int main(int argc, char *argv[])
         exit(1);
     }
     load_note_file(argv[1], notes);
+    //printf ("making map...");
     note2map(notes, map);
+    //printf ("%d items\n", map.size());
+    //printf ("reducing map...");
     map2reduce(map);
+    //map_sort(map);
+    //printf ("%d items\n", map.size());
+    //for (int i = 0; i < 20; i++ ) {
     for (int i = 0; i < map.size(); i++ ) {
-        printf("%.2f,%s\n", map[i].val, map[i].key);
+        printf("%.5f,%s\n", map[i].val, map[i].key);
     }
-    char mask[256];
-    int maskCnt = note2mask(notes, mask);
-    printf("note mask : %d\n", maskCnt);
-    printf("%s\n", mask);
 }

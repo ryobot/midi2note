@@ -4,9 +4,12 @@
 
 #include <cstdlib>
 #include <vector>
+#include <string>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <algorithm>
+#include <functional>
 using namespace std;
 
 struct key_value {
@@ -23,6 +26,9 @@ float standard(vector<key_value> &items);
 float x_standard(vector<key_value> &items_a, vector<key_value> &items_b);
 float correlation(vector<key_value> &items_a, vector<key_value> &items_b);
 int add_map(vector<key_value> &items, vector<key_value> &add);
+int add_map_old(vector<key_value> &items, vector<key_value> &add);
 int mapcopy(vector<key_value> &dst, vector<key_value> &src);
+void resumeKey(key_value &item);
+void map_sort(vector<key_value> &items);
 
 #endif

@@ -44,28 +44,41 @@ int mapcopy(vector<key_value> &dst, vector<key_value> &src) {
     return dst.size();
 }
 
+bool operator>( const key_value& left, const key_value& right ) {
+    //return left.val > right.val;
+    return strcmp(left.key, right.key) > 0;
+}
+
+bool operator<( const key_value& left, const key_value& right ) {
+    //return left.val < right.val;
+    return strcmp(left.key, right.key) < 0;
+}
+
+void map_sort(vector<key_value> &items) {
+    sort(items.begin(), items.end());
+}
+
 int map2reduce(vector<key_value> &items) {
     vector<key_value> reduced;
+    map_sort(items);
     key_value item;
+    strcpy(item.key, "");
+    item.val = 0.0;
     for ( int i = 0; i < items.size(); i++ ) {
-        bool found = false;
-        for ( int j = 0; j < reduced.size(); j++ ) {
-            if ( strcmp(items[i].key, reduced[j].key) == 0 ) {
-                reduced[j].val += items[i].val;
-                found = true;
-                break;
-            }
+        if ( strcmp(item.key, items[i].key) == 0 ) {
+            item.val += items[i].val;
+        } else {
+            if ( i > 0 ) reduced.push_back(item);
+            strcpy(item.key, items[i].key);
+            item.val = items[i].val;
         }
-        if ( found ) continue;
-        strcpy(item.key, items[i].key);
-        item.val = items[i].val;
-        reduced.push_back(item);
     }
+    reduced.push_back(item);
     mapcopy(items, reduced);
     return items.size();
 }
 
-int add_map(vector<key_value> &items, vector<key_value> &add) {
+int add_map_old(vector<key_value> &items, vector<key_value> &add) {
     for ( int i = 0; i < add.size(); i++ ) {
         bool found = false;
         for ( int j = 0; j < items.size(); j++ ) {
@@ -78,6 +91,12 @@ int add_map(vector<key_value> &items, vector<key_value> &add) {
         if ( found ) continue;
         items.push_back(add[i]);
     }
+    return items.size();
+}
+
+int add_map(vector<key_value> &items, vector<key_value> &add) {
+    items.insert(items.end(), add.begin(), add.end());
+    map2reduce(items);
     return items.size();
 }
 

@@ -1,0 +1,8 @@
+#!/bin/sh
+COMMAND=$@
+FROM=`date +"%s.%N"`
+$COMMAND
+TO=`date +"%s.%N"`
+DUR=`echo "$TO-$FROM" | bc`
+echo -e "\e[32mduration: $DUR sec.\e[m"
+exit 0
