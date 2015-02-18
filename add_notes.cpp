@@ -12,7 +12,7 @@ vector<key_value> ref_map;
 vector<key_value> cur_map;
 vector<notes> cur_notes;
 
-#define MAX_NOTES_GENERATOR 4
+#define MAX_NOTES_GENERATOR 3
 //#define MAX_NOTE_POS_TMP 20
 
 struct note_generator {
@@ -84,7 +84,7 @@ struct note_generator {
     }
 };
 
-float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, vector<key_value> &ref, char* mask, float cur_xcor) {
+float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, vector<key_value> &ref, char* mask, float cur_xcor, bool verbose) {
     //float cur_xcor = correlation(map, ref);
     //printf("cur xcor : %.4f\n", cur_xcor);
     float max_xcor = 0.0;
@@ -119,7 +119,7 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
         add_map(items_tmp, items_add);
         float xcor = correlation(items_tmp, ref);
         if ( xcor > max_xcor ) {
-            //printf("%s - %.4f\n", ng.buf, xcor);
+            if ( verbose ) printf("\e[32m%s - %.4f\e[m\n", ng.buf, xcor);
             max_xcor = xcor;
             strcpy(new_note.note, ng.buf);
             mapcopy(max_items_add, items_add);
@@ -175,10 +175,16 @@ int main(int argc, char *argv[])
     else printf("%s\n", last_note.note);
     // new frames:
     for (int i = 0; i < num_frames; i++ ) {
-        xcor = make_new_frame(new_note, last_note, cur_map, ref_map, mask, xcor);
+        xcor = make_new_frame(new_note, last_note, cur_map, ref_map, mask, xcor, verbose);
         if ( verbose ) printf("%s - %.4f\n", new_note.note, xcor);
         else printf("%s\n", new_note.note);
         cur_notes.push_back(new_note);
         last_note = cur_notes.back();
+    }
+    if ( verbose ) {
+        printf ("Result notes:---------------\n");
+        for (int i = 0; i < cur_notes.size(); i++) {
+            printf("%s\n", cur_notes[i].note);
+        }
     }
 }

@@ -125,6 +125,27 @@ float x_standard(vector<key_value> &items_a, vector<key_value> &items_b) {
     return xst;
 }
 
+float x_standard_sorted(vector<key_value> &items_a, vector<key_value> &items_b) {
+    float xst = 0;
+    int ia = 0;
+    int ib = 0;
+    
+    while ( ia < items_a.size() && ib < items_b.size() ) {
+        int cmp = strcmp(items_a[ia].key, items_b[ib].key);
+        if ( cmp == 0 ) {
+            xst += items_a[ia].val * items_b[ib].val;
+            ia++;
+            ib++;
+        } else if ( cmp < 0 ) {
+            ia++;
+        } else {
+            ib++;
+        }
+    }
+    return xst;
+}
+
 float correlation(vector<key_value> &items_a, vector<key_value> &items_b) {
-        return x_standard(items_a, items_b)/(standard(items_a)*standard(items_b));
+        //return x_standard(items_a, items_b)/(standard(items_a)*standard(items_b));
+        return x_standard_sorted(items_a, items_b)/(standard(items_a)*standard(items_b));
 }

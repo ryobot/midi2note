@@ -15,15 +15,15 @@ int main(int argc, char *argv[])
 {
     if ( argc < 2 ) {
         printf("usage : correlation [txt map file 1] [txt map file 2]\n");
-        printf("usage : correlation -r [txt reduced file 1] [txt reduced file 2]\n");
+        printf("usage : correlation -n [txt reduced file 1] [txt reduced file 2]\n");
         exit(1);
     }
     
     // option reduced or not:
     int argc_pos = 1;
-    bool reduced = false;
-    if ( strcmp( argv[argc_pos], "-r" ) == 0 ) {
-        reduced = true;
+    bool reduced = true;
+    if ( strcmp( argv[argc_pos], "-n" ) == 0 ) {
+        reduced = false;
         argc_pos++;
     }
     

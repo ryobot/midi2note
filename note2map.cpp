@@ -17,16 +17,25 @@ int main(int argc, char *argv[])
         printf("usage : note2map [txt note file]\n");
         exit(1);
     }
+    bool verbose = false;
+    if ( argc == 3 && strcmp(argv[2], "-v") == 0 ) {
+        verbose = true;
+    }
     load_note_file(argv[1], notes);
-    //printf ("making map...");
+    if (verbose)    printf ("making map...");
     note2map(notes, map);
-    //printf ("%d items\n", map.size());
-    //printf ("reducing map...");
+    if (verbose)    printf ("%d items\n", map.size());
+    if (verbose)    printf ("reducing map...");
     map2reduce(map);
     //map_sort(map);
-    //printf ("%d items\n", map.size());
-    //for (int i = 0; i < 20; i++ ) {
-    for (int i = 0; i < map.size(); i++ ) {
-        printf("%.5f,%s\n", map[i].val, map[i].key);
+    if (verbose)    printf ("%d items\n", map.size());
+    if (verbose)    {
+        for (int i = 0; i < 20; i++ ) {
+            printf("%.5f,%s\n", map[i].val, map[i].key);
+        }
+    } else {
+        for (int i = 0; i < map.size(); i++ ) {
+            printf("%.5f,%s\n", map[i].val, map[i].key);
+        }
     }
 }
