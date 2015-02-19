@@ -1,0 +1,8 @@
+#!/bin/sh
+filename=$1
+MF2T_PATH=/root/mf2t/
+
+./note2midi ${filename}_note.txt > $MF2T_PATH/${filename}_mid.txt
+$MF2T_PATH/t2mf $MF2T_PATH/${filename}_mid.txt $MF2T_PATH/${filename}.mid
+
+exit 0

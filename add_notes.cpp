@@ -12,7 +12,7 @@ vector<key_value> ref_map;
 vector<key_value> cur_map;
 vector<notes> cur_notes;
 
-#define MAX_NOTES_GENERATOR 3
+#define MAX_NOTES_GENERATOR 4
 //#define MAX_NOTE_POS_TMP 20
 
 struct note_generator {
@@ -84,6 +84,48 @@ struct note_generator {
     }
 };
 
+char* last_note_mask(vector<key_value> &map, char* last_note, char* mask, char* timing_str) {
+    strcpy(mask, "000000 : |           |           |           |           |           |           |");
+
+    vector<int> note_nums;
+    char buf[8];
+    int offset = NOTE_NUM_OFFSET - MIN_NOTE_POS;
+    // last notes:
+    for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
+        if ( is_note_ch(last_note[i]) ) {
+            note_nums.push_back(i + offset);
+        }
+    }
+    for (int i = 0; i < map.size(); i++) {
+        if ( NULL == strstr(map[i].key, timing_str) ) continue;
+        char prev[128];
+        char keycopy[128];
+        strcpy(keycopy, map[i].key);
+        if ( keycopy[0] == '>' ) {
+            strcpy(prev, "");
+        } else {
+            strcpy(prev, strtok(keycopy, ">"));
+        }
+        bool found = false;
+        for (int j = 0; j < note_nums.size(); j++) {
+            sprintf(buf, "%03d", note_nums[j]);
+            if ( NULL != strstr(prev, buf) ) {
+                found = true;
+                break;
+            }
+        }
+        if (found) {
+            char* ptok;
+            while( NULL != (ptok = strtok(NULL, "nc"))) {
+                if ( ptok[0] == 't' ) break;
+                int possible_note_pos = atoi(ptok) - offset;
+                mask[possible_note_pos] = 'o';
+            }
+        }
+    }
+    return (mask);
+}
+
 float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, vector<key_value> &ref, char* mask, float cur_xcor, bool verbose) {
     //float cur_xcor = correlation(map, ref);
     //printf("cur xcor : %.4f\n", cur_xcor);
@@ -104,8 +146,11 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
         strcpy(timing_str, "t00");
     }
 
+    char ln_mask[256];
+    last_note_mask(ref, last_note.note, ln_mask, timing_str);
+    if ( verbose ) printf("\e[34m%s - MASK\e[m\n", ln_mask);
     note_generator ng;
-    ng.init(last_note, mask);
+    ng.init(last_note, ln_mask);
     int cnt = 0;
     while (!ng.completed) {
         ng.get_note();
@@ -118,6 +163,7 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
         }
         add_map(items_tmp, items_add);
         float xcor = correlation(items_tmp, ref);
+        if ( verbose ) printf("\e[33m%s - %.4f\e[m\r", ng.buf, xcor);
         if ( xcor > max_xcor ) {
             if ( verbose ) printf("\e[32m%s - %.4f\e[m\n", ng.buf, xcor);
             max_xcor = xcor;
