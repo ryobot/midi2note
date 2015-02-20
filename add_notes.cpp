@@ -24,9 +24,11 @@ struct note_generator {
     char mask[128];
     bool completed;
     int beat_pos;
+    int generators_num;
     
     void init(notes &last_note, char* _mask) {
         strcpy(mask, _mask);
+        generators_num = MAX_NOTES_GENERATOR;
         for(int i = 0; i < MAX_NOTES_GENERATOR; i++) {
             index[i] = MIN_NOTE_POS + i*12;
             type[i] = 'o';
@@ -43,13 +45,20 @@ struct note_generator {
             index[in]++;
             type[in] = 'o';
         }
-        if ( index[in] > MAX_NOTE_POS ) {
+        if ( index[in] >= MAX_NOTE_POS ) {
             if ( in > 0 ) {
                 iterate(in - 1);
                 index[in] = index[in - 1] + 1;
                 if ( index[in] < MIN_NOTE_POS + in*12 ) index[in] = MIN_NOTE_POS + in*12;
             } else {
-                completed = true;
+                if ( --generators_num == 0 ) {
+                    completed = true;
+                } else {
+                    for(int i = 0; i < generators_num; i++) {
+                        index[i] = MIN_NOTE_POS + i*12;
+                        type[i] = 'o';
+                    }
+                }
             }
         }
     }
@@ -64,14 +73,14 @@ struct note_generator {
                     buf[i] = ' ';
                 }
             }
-            for(int j = 0; j < MAX_NOTES_GENERATOR; j++) {
+            for(int j = 0; j < generators_num; j++) {
                 if ( index[j] == i ) {
                     buf[i] = type[j];
                     break;
                 }
             }
         }
-        iterate(MAX_NOTES_GENERATOR - 1);
+        iterate(generators_num - 1);
         return buf;
     }
     bool maskChk() {
@@ -96,8 +105,12 @@ char* last_note_mask(vector<key_value> &map, char* last_note, char* mask, char* 
             note_nums.push_back(i + offset);
         }
     }
+    bool time_ristriction = true;
+    if ( timing_str == NULL ) {
+        time_ristriction = false;
+    }
     for (int i = 0; i < map.size(); i++) {
-        if ( NULL == strstr(map[i].key, timing_str) ) continue;
+        if ( time_ristriction && NULL == strstr(map[i].key, timing_str) ) continue;
         char prev[128];
         char keycopy[128];
         strcpy(keycopy, map[i].key);
@@ -126,7 +139,7 @@ char* last_note_mask(vector<key_value> &map, char* last_note, char* mask, char* 
     return (mask);
 }
 
-float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, vector<key_value> &ref, char* mask, float cur_xcor, bool verbose) {
+float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, vector<key_value> &ref, float cur_xcor, char* mask, bool verbose) {
     //float cur_xcor = correlation(map, ref);
     //printf("cur xcor : %.4f\n", cur_xcor);
     float max_xcor = 0.0;
@@ -136,6 +149,7 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
     var_data lastVar, newVar;
     make_vars(last_note.note, lastVar);
     new_note.time = last_note.time + 240;
+    
     char timing_str[16];
     int timing_res = 4;
     if ( timing_res ) {
@@ -145,13 +159,19 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
     else {
         strcpy(timing_str, "t00");
     }
-
+        
     char ln_mask[256];
-    last_note_mask(ref, last_note.note, ln_mask, timing_str);
+    if ( mask != NULL ) {
+        strcpy(ln_mask, mask);
+    } else {
+        last_note_mask(ref, last_note.note, ln_mask, timing_str);
+    }
     if ( verbose ) printf("\e[34m%s - MASK\e[m\n", ln_mask);
+    
     note_generator ng;
     ng.init(last_note, ln_mask);
     int cnt = 0;
+    
     while (!ng.completed) {
         ng.get_note();
         if ( !ng.maskChk() ) continue;
@@ -163,9 +183,9 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
         }
         add_map(items_tmp, items_add);
         float xcor = correlation(items_tmp, ref);
-        if ( verbose ) printf("\e[33m%s - %.4f\e[m\r", ng.buf, xcor);
-        if ( xcor > max_xcor ) {
-            if ( verbose ) printf("\e[32m%s - %.4f\e[m\n", ng.buf, xcor);
+        //if ( verbose ) printf("\e[33m%s - %.8f\e[m\r", ng.buf, xcor);
+        if ( xcor >= max_xcor ) {
+            if ( verbose ) printf("\e[32m%s - %.8f\e[m\r", ng.buf, xcor);
             max_xcor = xcor;
             strcpy(new_note.note, ng.buf);
             mapcopy(max_items_add, items_add);
@@ -179,15 +199,15 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
 int main(int argc, char *argv[])
 {
     if ( argc < 3 ) {
-        printf("usage : add_notes [note file] [reference reduced map file] [note mask file] [frames to add(default:16)]\n");
+        printf("usage : add_notes [note file] [reference reduced map file] [frames to add(default:16)]\n");
         exit(1);
     }
     int num_frames = 16;
-    if ( argc >= 5 ) {
-        num_frames = atoi(argv[4]);
+    if ( argc >= 4 ) {
+        num_frames = atoi(argv[3]);
     }
     bool verbose = false;
-    if ( argc == 6 && strcmp(argv[5], "-v") == 0 ) {
+    if ( argc == 5 && strcmp(argv[4], "-v") == 0 ) {
         verbose = true;
     }
     bool reduced = true;
@@ -195,12 +215,6 @@ int main(int argc, char *argv[])
     // load src notes:
     int src_len = load_note_file(argv[1], cur_notes);
     
-    // load note mask:
-    char mask[256];
-    load_mask_file(argv[3], mask);
-    if ( verbose ) {
-        printf("-- note mask --\n%s\n---------------\n", mask);
-    }
     // note2map
     note2map(cur_notes, cur_map);
     
@@ -209,6 +223,15 @@ int main(int argc, char *argv[])
     
     // load reference:
     load_key_value_file(argv[2], ref_map, reduced);
+
+    // make note mask:
+    char mask[256];
+    char allnotes[256];
+    strcpy(allnotes, "000000 : o+++++++++++o+++++++++++o+++++++++++o+++++++++++o+++++++++++o+++++++++++o");
+    last_note_mask(ref_map, allnotes, mask, NULL);
+    if ( verbose ) {
+        printf("-- all note mask --\n%s\n---------------\n", mask);
+    }
 
     for (int i = 0; i < cur_notes.size() - 1; i++) {
         printf("%s\n", cur_notes[i].note);
@@ -221,7 +244,7 @@ int main(int argc, char *argv[])
     else printf("%s\n", last_note.note);
     // new frames:
     for (int i = 0; i < num_frames; i++ ) {
-        xcor = make_new_frame(new_note, last_note, cur_map, ref_map, mask, xcor, verbose);
+        xcor = make_new_frame(new_note, last_note, cur_map, ref_map, xcor, NULL, verbose);
         if ( verbose ) printf("%s - %.4f\n", new_note.note, xcor);
         else printf("%s\n", new_note.note);
         cur_notes.push_back(new_note);

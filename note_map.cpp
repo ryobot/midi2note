@@ -72,6 +72,8 @@ bool is_possible_map(char* buf_prev, char* buf_cur, char* org_prev, char* org_cu
 }
 
 int make_map(char* buf_prev, char* buf_cur, float val, vector<key_value> &items) {
+    //printf("\e[32m%s\e[m\n", buf_prev);
+    //printf("\e[34m%s\e[m\n\n", buf_cur);
     key_value item;
     char wbuf[16];
     strcpy(item.key, "");
@@ -139,6 +141,7 @@ int note2map(vector<notes> &notes, vector<key_value> &map, int timing_res) {
     strcpy(buf, "000000 : |           |           |           |           |           |           |");
     make_vars(buf, varData[prev]);
     for (int j = 0; j < notes.size(); j++ ) {
+        //printf ("%d\n", notes[j].time);
         // variations:
         make_vars(notes[j].note, varData[current]);
         make_maps(varData[prev], varData[current], items);

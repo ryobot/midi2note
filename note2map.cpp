@@ -22,6 +22,7 @@ int main(int argc, char *argv[])
         verbose = true;
     }
     load_note_file(argv[1], notes);
+    if (verbose)    printf ("notes length:%d\n", notes.size());
     if (verbose)    printf ("making map...");
     note2map(notes, map);
     if (verbose)    printf ("%d items\n", map.size());
