@@ -19,6 +19,9 @@ int main(int argc, char *argv[])
     load_key_value_file(argv[1], items);
     for ( int i = 0; i < items.size(); i++ ) {
         printf("%.2f,%s\n", items[i].val, items[i].key);
+        key_contents kc;
+        kc.init(items[i].key);
+        kc.dump();
     }
     exit(0);
 }

@@ -97,12 +97,16 @@ char* last_note_mask(vector<key_value> &map, char* last_note, char* mask, char* 
     strcpy(mask, "000000 : |           |           |           |           |           |           |");
 
     vector<int> note_nums;
+    vector<int> continue_nums;
     char buf[8];
     int offset = NOTE_NUM_OFFSET - MIN_NOTE_POS;
     // last notes:
     for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
-        if ( is_note_ch(last_note[i]) ) {
+        if ( last_note[i] == 'o' ) {
             note_nums.push_back(i + offset);
+        }
+        if ( last_note[i] == '+' ) {
+            continue_nums.push_back(i + offset);
         }
     }
     bool time_ristriction = true;
@@ -121,7 +125,14 @@ char* last_note_mask(vector<key_value> &map, char* last_note, char* mask, char* 
         }
         bool found = false;
         for (int j = 0; j < note_nums.size(); j++) {
-            sprintf(buf, "%03d", note_nums[j]);
+            sprintf(buf, "n%03d", note_nums[j]);
+            if ( NULL != strstr(prev, buf) ) {
+                found = true;
+                break;
+            }
+        }
+        for (int j = 0; j < continue_nums.size(); j++) {
+            sprintf(buf, "c%03d", continue_nums[j]);
             if ( NULL != strstr(prev, buf) ) {
                 found = true;
                 break;

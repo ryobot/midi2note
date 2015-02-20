@@ -19,6 +19,17 @@ struct key_value {
     void init(char* buf);
 };
 
+struct key_contents {
+    vector<int> prev_on;
+    vector<int> prev_continue;
+    vector<int> cur_on;
+    vector<int> cur_continue;
+    char timing_str[8];
+    
+    void init(char* key);
+    void dump();
+};
+
 int load_key_value_file(char* filename, vector<key_value> &items, bool reduced=false);
 int map2reduce(vector<key_value> &items);
 float value_for_key(char* key, vector<key_value> &items);

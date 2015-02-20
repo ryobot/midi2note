@@ -10,6 +10,52 @@ void key_value::init(char* buf) {
     strcpy(key, strtok(NULL, ", \n"));
 }
 
+void key_contents::init(char* key) {
+    prev_on.clear();
+    prev_continue.clear();
+    cur_on.clear();
+    cur_continue.clear();
+    char buf[8];   
+    bool prev_zone = true;
+    for (int i = 0; i < strlen(key); i++ ) {
+        if ( key[i] == '>' ) {
+            prev_zone = false;
+            continue;
+        }
+        if ( key[i] == 'n' || key[i] == 'c') {
+            buf[0] = key[i + 1];
+            buf[1] = key[i + 2];
+            buf[2] = key[i + 3];
+            buf[3] = 0;
+            if ( prev_zone ) {
+                if ( key[i] == 'n' ) prev_on.push_back(atoi(buf));
+                else prev_continue.push_back(atoi(buf));
+            } else {
+                if ( key[i] == 'n' ) cur_on.push_back(atoi(buf));
+                else cur_continue.push_back(atoi(buf));
+            }
+        }
+        if ( key[i] == 't' ) {
+            buf[0] = key[i + 1];
+            buf[1] = key[i + 2];
+            buf[2] = 0;
+            strcpy(timing_str, buf);
+        }
+    }
+}
+
+void key_contents::dump() {
+    printf("prev on :");
+    for (int i = 0; i < prev_on.size(); i++) printf(" %d", prev_on[i]);
+    printf("\nprev continue:");
+    for (int i = 0; i < prev_continue.size(); i++) printf(" %d", prev_continue[i]);
+    printf("\ncur. on :");
+    for (int i = 0; i < cur_on.size(); i++) printf(" %d", cur_on[i]);
+    printf("\ncur. continue:");
+    for (int i = 0; i < cur_continue.size(); i++) printf(" %d", cur_continue[i]);
+    printf("\ntiming str: %s\n", timing_str);
+}
+
 int load_key_value_file(char* filename, vector<key_value> &items, bool reduced) {
     FILE *f;
     char buf[256];
