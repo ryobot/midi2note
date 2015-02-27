@@ -85,7 +85,10 @@ struct note_generator {
     }
     bool maskChk() {
         for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
-            if ( is_note_ch(buf[i]) && mask[i] != 'o' ) {
+            if ( buf[i] == 'o' && !(mask[i] == 'o' || mask[i] == 'x') ) {
+                return(false);
+            }
+            if ( buf[i] == '+' && !(mask[i] == '+' || mask[i] == 'x') ) {
                 return(false);
             }
         }
@@ -115,37 +118,53 @@ char* last_note_mask(vector<key_value> &map, char* last_note, char* mask, char* 
     }
     for (int i = 0; i < map.size(); i++) {
         if ( time_ristriction && NULL == strstr(map[i].key, timing_str) ) continue;
-        char prev[128];
-        char keycopy[128];
-        strcpy(keycopy, map[i].key);
-        if ( keycopy[0] == '>' ) {
-            strcpy(prev, "");
-        } else {
-            strcpy(prev, strtok(keycopy, ">"));
-        }
+        
+        key_contents kc;
+        kc.init(map[i].key);
+
+        // search notes and continues in prev zone:
         bool found = false;
         for (int j = 0; j < note_nums.size(); j++) {
-            sprintf(buf, "n%03d", note_nums[j]);
-            if ( NULL != strstr(prev, buf) ) {
-                found = true;
-                break;
+            for (int k = 0; k < kc.prev_on.size(); k++) {
+                if ( note_nums[j] == kc.prev_on[k] ) {
+                    found = true;
+                    break;
+                }
+            }
+            if ( found ) break;
+        }
+        if ( !found ) {
+            for (int j = 0; j < continue_nums.size(); j++) {
+                for (int k = 0; k < kc.prev_continue.size(); k++) {
+                    if ( continue_nums[j] == kc.prev_continue[k] ) {
+                        found = true;
+                        break;
+                    }
+                }
+                if ( found ) break;
             }
         }
-        for (int j = 0; j < continue_nums.size(); j++) {
-            sprintf(buf, "c%03d", continue_nums[j]);
-            if ( NULL != strstr(prev, buf) ) {
-                found = true;
-                break;
+        
+        if ( found ) {
+            for (int k = 0; k < kc.cur_on.size(); k++) {
+                int possible_note_pos = kc.cur_on[k] - offset;
+                if ( mask[possible_note_pos] == 'x' ) continue;
+                if ( mask[possible_note_pos] == '+' ) {
+                    mask[possible_note_pos] = 'x';
+                } else {
+                    mask[possible_note_pos] = 'o';
+                }
             }
-        }
-        if (found) {
-            char* ptok;
-            while( NULL != (ptok = strtok(NULL, "nc"))) {
-                if ( ptok[0] == 't' ) break;
-                int possible_note_pos = atoi(ptok) - offset;
-                mask[possible_note_pos] = 'o';
+            for (int k = 0; k < kc.cur_continue.size(); k++) {
+                int possible_note_pos = kc.cur_continue[k] - offset;
+                if ( mask[possible_note_pos] == 'x' ) continue;
+                if ( mask[possible_note_pos] == 'o' ) {
+                    mask[possible_note_pos] = 'x';
+                } else {
+                    mask[possible_note_pos] = '+';
+                }
             }
-        }
+        }        
     }
     return (mask);
 }
@@ -251,12 +270,12 @@ int main(int argc, char *argv[])
     notes new_note;
     notes last_note = cur_notes.back();
     float xcor = correlation(cur_map, ref_map);
-    if ( verbose ) printf("%s - %.4f\n", last_note.note, xcor);
+    if ( verbose ) printf("%s - %.8f\n", last_note.note, xcor);
     else printf("%s\n", last_note.note);
     // new frames:
     for (int i = 0; i < num_frames; i++ ) {
         xcor = make_new_frame(new_note, last_note, cur_map, ref_map, xcor, NULL, verbose);
-        if ( verbose ) printf("%s - %.4f\n", new_note.note, xcor);
+        if ( verbose ) printf("%s - %.8f\n", new_note.note, xcor);
         else printf("%s\n", new_note.note);
         cur_notes.push_back(new_note);
         last_note = cur_notes.back();
