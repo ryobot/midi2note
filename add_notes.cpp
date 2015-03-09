@@ -215,7 +215,12 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
         float xcor = correlation(items_tmp, ref);
         //if ( verbose ) printf("\e[33m%s - %.8f\e[m\r", ng.buf, xcor);
         if ( xcor >= max_xcor ) {
-            if ( verbose ) printf("\e[32m%s - %.8f\e[m\r", ng.buf, xcor);
+            if ( verbose ) {
+                if ( xcor < cur_xcor )
+                    printf("\e[31m%s - %.8f\e[m\r", ng.buf, xcor);
+                else
+                    printf("\e[32m%s - %.8f\e[m\r", ng.buf, xcor);
+            }
             max_xcor = xcor;
             strcpy(new_note.note, ng.buf);
             mapcopy(max_items_add, items_add);
@@ -269,13 +274,18 @@ int main(int argc, char *argv[])
     
     notes new_note;
     notes last_note = cur_notes.back();
-    float xcor = correlation(cur_map, ref_map);
-    if ( verbose ) printf("%s - %.8f\n", last_note.note, xcor);
+    float last_xcor = correlation(cur_map, ref_map);
+    if ( verbose ) printf("%s - %.8f\n", last_note.note, last_xcor);
     else printf("%s\n", last_note.note);
     // new frames:
     for (int i = 0; i < num_frames; i++ ) {
-        xcor = make_new_frame(new_note, last_note, cur_map, ref_map, xcor, NULL, verbose);
-        if ( verbose ) printf("%s - %.8f\n", new_note.note, xcor);
+        float xcor = make_new_frame(new_note, last_note, cur_map, ref_map, last_xcor, NULL, verbose);
+        if ( verbose ) {
+            if ( xcor < last_xcor )
+                printf("\e[31m%s - %.8f\e[m\n", new_note.note, xcor);
+            else
+                printf("%s - %.8f\n", new_note.note, xcor);
+        }
         else printf("%s\n", new_note.note);
         cur_notes.push_back(new_note);
         last_note = cur_notes.back();
