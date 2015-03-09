@@ -287,6 +287,7 @@ int main(int argc, char *argv[])
                 printf("%s - %.8f\n", new_note.note, xcor);
         }
         else printf("%s\n", new_note.note);
+        last_xcor = xcor;
         cur_notes.push_back(new_note);
         last_note = cur_notes.back();
     }
