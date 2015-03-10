@@ -225,7 +225,28 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
             strcpy(new_note.note, ng.buf);
             mapcopy(max_items_add, items_add);
         }
-        //if ( cnt++ > 100 ) break;
+    }
+    if ( max_xcor < cur_xcor ) {
+        // just continue previous notes when cannot gain the xcor.
+        char cntn_note_str[128];
+        if ( ( (last_note.time + 240) % 960) == 0 ) {
+            sprintf(cntn_note_str, "%06d : |-----------|-----------|-----------|-----------|-----------|-----------|", last_note.time + 240);
+        } else {
+            sprintf(cntn_note_str, "%06d : |           |           |           |           |           |           |", last_note.time + 240);
+        }
+        for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
+            if ( is_note_ch(last_note.note[i]) ) cntn_note_str[i] = '+';
+        }
+        make_vars(cntn_note_str, newVar);
+        make_maps(lastVar, newVar, items_add);
+        mapcopy(items_tmp, map);
+        for ( int i = 0; i < items_add.size(); i++ ) {
+            strcat(items_add[i].key, timing_str);
+        }
+        add_map(items_tmp, items_add);
+        max_xcor = correlation(items_tmp, ref);        
+        strcpy(new_note.note, cntn_note_str);
+        mapcopy(max_items_add, items_add);
     }
     add_map(map, max_items_add);
     return(max_xcor);
