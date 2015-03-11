@@ -94,6 +94,14 @@ struct note_generator {
         }
         return(true);
     }
+    bool continueChk() {
+        for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
+            if ( buf[i] == '+' && !is_note_ch(ref[i]) ) {
+                return(false);
+            }
+        }
+        return(true);
+    }
 };
 
 char* last_note_mask(vector<key_value> &map, char* last_note, char* mask, char* timing_str) {
@@ -169,16 +177,21 @@ char* last_note_mask(vector<key_value> &map, char* last_note, char* mask, char* 
     return (mask);
 }
 
-float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, vector<key_value> &ref, float cur_xcor, char* mask, bool verbose) {
+float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, vector<key_value> &ref, float cur_xcor, float target_xcor, char* mask, bool verbose) {
     //float cur_xcor = correlation(map, ref);
     //printf("cur xcor : %.4f\n", cur_xcor);
-    float max_xcor = 0.0;
+    float best_xcor = 0.0;
     vector<key_value> max_items_add;
     vector<key_value> items_add;
     vector<key_value> items_tmp;
     var_data lastVar, newVar;
     make_vars(last_note.note, lastVar);
     new_note.time = last_note.time + 240;
+    
+    if ( target_xcor == 0 ) {
+        target_xcor = cur_xcor + 0.001;
+    }
+    float min_diff = 1.0;
     
     char timing_str[16];
     int timing_res = 4;
@@ -196,7 +209,7 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
     } else {
         last_note_mask(ref, last_note.note, ln_mask, timing_str);
     }
-    if ( verbose ) printf("\e[34m%s - MASK\e[m\n", ln_mask);
+    if ( verbose ) printf("\e[34m%s > %.8f\e[m\n", ln_mask, target_xcor);
     
     note_generator ng;
     ng.init(last_note, ln_mask);
@@ -204,7 +217,7 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
     
     while (!ng.completed) {
         ng.get_note();
-        if ( !ng.maskChk() ) continue;
+        if ( !ng.maskChk() || !ng.continueChk() ) continue;
         make_vars(ng.buf, newVar);
         make_maps(lastVar, newVar, items_add);
         mapcopy(items_tmp, map);
@@ -213,20 +226,25 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
         }
         add_map(items_tmp, items_add);
         float xcor = correlation(items_tmp, ref);
+        float diff = fabs(xcor - target_xcor);
         //if ( verbose ) printf("\e[33m%s - %.8f\e[m\r", ng.buf, xcor);
-        if ( xcor >= max_xcor ) {
+        //if ( xcor >= max_xcor ) {
+        if ( (xcor < cur_xcor && xcor > best_xcor) || 
+              (xcor >= cur_xcor && min_diff >= diff)  ) {
             if ( verbose ) {
                 if ( xcor < cur_xcor )
                     printf("\e[31m%s - %.8f\e[m\r", ng.buf, xcor);
                 else
                     printf("\e[32m%s - %.8f\e[m\r", ng.buf, xcor);
             }
-            max_xcor = xcor;
+            min_diff = diff;
+            best_xcor = xcor;
             strcpy(new_note.note, ng.buf);
             mapcopy(max_items_add, items_add);
         }
     }
-    if ( max_xcor < cur_xcor ) {
+    /*
+    if ( best_xcor < cur_xcor ) {
         // just continue previous notes when cannot gain the xcor.
         char cntn_note_str[128];
         if ( ( (last_note.time + 240) % 960) == 0 ) {
@@ -244,12 +262,12 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
             strcat(items_add[i].key, timing_str);
         }
         add_map(items_tmp, items_add);
-        max_xcor = correlation(items_tmp, ref);        
+        best_xcor = correlation(items_tmp, ref);        
         strcpy(new_note.note, cntn_note_str);
         mapcopy(max_items_add, items_add);
-    }
+    }*/
     add_map(map, max_items_add);
-    return(max_xcor);
+    return(best_xcor);
 }
 
 int main(int argc, char *argv[])
@@ -300,7 +318,8 @@ int main(int argc, char *argv[])
     else printf("%s\n", last_note.note);
     // new frames:
     for (int i = 0; i < num_frames; i++ ) {
-        float xcor = make_new_frame(new_note, last_note, cur_map, ref_map, last_xcor, NULL, verbose);
+        float target_xcor = last_xcor + (1.0 - last_xcor) / (float)(num_frames - i);
+        float xcor = make_new_frame(new_note, last_note, cur_map, ref_map, last_xcor, target_xcor, NULL, verbose);
         if ( verbose ) {
             if ( xcor < last_xcor )
                 printf("\e[31m%s - %.8f\e[m\n", new_note.note, xcor);

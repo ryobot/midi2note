@@ -113,7 +113,7 @@ int make_maps(var_data &prev, var_data &cur, vector<key_value> &items) {
         for (int j = 0; j < cur.strs.size(); j++) {
             if ( i == 0 && j == 0 ) {
                 make_map(prev.strs[0].str, cur.strs[0].str, 1.0, items);
-                possible_map_cnt++;
+                //possible_map_cnt++;
             }
             else {
                 if ( is_possible_map(prev.strs[i].str, cur.strs[j].str, prev.strs[0].str, cur.strs[0].str) ) {
@@ -125,7 +125,7 @@ int make_maps(var_data &prev, var_data &cur, vector<key_value> &items) {
             }
         }
     }
-    for (int i = 0; i < items.size(); i++) {
+    for (int i = 1; i < items.size(); i++) {
         items[i].val /= (float)possible_map_cnt;
     }
 }

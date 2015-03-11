@@ -38,7 +38,7 @@ int getDataKind(string line) {
 
 int main(int argc, char *argv[])
 {
-    if ( argc < 1 ) {
+    if ( argc < 2 ) {
         printf("usage : midi2note [txt midi file of mf2t]\n", argv[1]);
         exit(1);
     }
@@ -47,6 +47,11 @@ int main(int argc, char *argv[])
         printf("file %s not found\n", argv[1]);
         exit(1);
     }
+    int transport = 0;
+    if ( argc == 3 ) {
+        transport = atoi(argv[2]);
+    }
+    
     char buf[256];
     char n[128];
     strcpy(n, "|           |           |           |           |           |           |");
@@ -76,7 +81,7 @@ int main(int argc, char *argv[])
                     if ( n[i] == 'o' ) n[i] = '+';
                 }
             }
-            int disp_pos = note - 24;
+            int disp_pos = note - 24 + transport;
             if ( disp_pos >= 0 && disp_pos < 73 ) {
                 if ( dataKind == 2 ) {
                     if ( disp_pos % 12 == 0 ) {
