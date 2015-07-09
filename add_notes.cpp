@@ -177,7 +177,17 @@ char* last_note_mask(vector<key_value> &map, char* last_note, char* mask, char* 
     return (mask);
 }
 
-float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, vector<key_value> &ref, float cur_xcor, float target_xcor, char* mask, bool verbose) {
+float make_new_frame(
+        notes &new_note, 
+        notes &last_note, 
+        vector<key_value> &map,
+        vector<key_value> &ref, 
+        float cur_xcor, 
+        float target_xcor, 
+        char* mask, 
+        bool verbose
+) 
+{
     //float cur_xcor = correlation(map, ref);
     //printf("cur xcor : %.4f\n", cur_xcor);
     float best_xcor = 0.0;
@@ -229,8 +239,11 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
         float diff = fabs(xcor - target_xcor);
         //if ( verbose ) printf("\e[33m%s - %.8f\e[m\r", ng.buf, xcor);
         //if ( xcor >= max_xcor ) {
-        if ( (xcor < cur_xcor && xcor > best_xcor) || 
-              (xcor >= cur_xcor && min_diff >= diff)  ) {
+        
+        //if ( (xcor < cur_xcor && xcor > best_xcor) || 
+        //      (xcor >= cur_xcor && min_diff >= diff) ) {
+        
+        if ( xcor > best_xcor ) {
             if ( verbose ) {
                 if ( xcor < cur_xcor )
                     printf("\e[31m%s - %.8f\e[m\r", ng.buf, xcor);
@@ -243,7 +256,6 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
             mapcopy(max_items_add, items_add);
         }
     }
-    /*
     if ( best_xcor < cur_xcor ) {
         // just continue previous notes when cannot gain the xcor.
         char cntn_note_str[128];
@@ -265,7 +277,7 @@ float make_new_frame(notes &new_note, notes &last_note, vector<key_value> &map, 
         best_xcor = correlation(items_tmp, ref);        
         strcpy(new_note.note, cntn_note_str);
         mapcopy(max_items_add, items_add);
-    }*/
+    }
     add_map(map, max_items_add);
     return(best_xcor);
 }
@@ -285,6 +297,15 @@ int main(int argc, char *argv[])
         verbose = true;
     }
     bool reduced = true;
+    
+    if (verbose) {
+        printf("seed file:%s\n", argv[1]);
+        printf("map file:%s\n", argv[2]);
+        printf("frames to make:%d\n", num_frames);
+        printf("CHANGE LOG:----\n");
+        printf("ver.2015-07-07:Values for each note transition not divided by possible transition count. (note_map.cpp)\n");
+        printf("ver.2015-07-08:Just continue previous notes when cannot gain the xcor.\n");
+    }
     
     // load src notes:
     int src_len = load_note_file(argv[1], cur_notes);
@@ -314,17 +335,31 @@ int main(int argc, char *argv[])
     notes new_note;
     notes last_note = cur_notes.back();
     float last_xcor = correlation(cur_map, ref_map);
+    float start_xcor = last_xcor;
     if ( verbose ) printf("%s - %.8f\n", last_note.note, last_xcor);
     else printf("%s\n", last_note.note);
     // new frames:
     for (int i = 0; i < num_frames; i++ ) {
         float target_xcor = last_xcor + (1.0 - last_xcor) / (float)(num_frames - i);
-        float xcor = make_new_frame(new_note, last_note, cur_map, ref_map, last_xcor, target_xcor, NULL, verbose);
+        float target_xcor_liner = start_xcor + (1.0 - start_xcor)*(float)(i+1)/(float)num_frames;
+        if ( target_xcor < target_xcor_liner ) {
+            target_xcor = target_xcor_liner;
+        }
+        float xcor = make_new_frame(
+            new_note, 
+            last_note, 
+            cur_map, 
+            ref_map, 
+            last_xcor,
+            target_xcor, 
+            NULL,
+            verbose
+        );
         if ( verbose ) {
             if ( xcor < last_xcor )
-                printf("\e[31m%s - %.8f\e[m\n", new_note.note, xcor);
+                printf("\e[31m%s - %.8f\e[m %3d/%3d\n", new_note.note, xcor, i, num_frames);
             else
-                printf("%s - %.8f\n", new_note.note, xcor);
+                printf("%s - %.8f %3d/%3d\n", new_note.note, xcor, i, num_frames);
         }
         else printf("%s\n", new_note.note);
         last_xcor = xcor;

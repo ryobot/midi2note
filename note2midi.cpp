@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
                 midi md;
                 md.n = note_num;
                 md.ch = 1;
-                md.v = 32 + note_num/2;
+                md.v = 64 + note_num/4;
                 running_notes.push_back(md);
                 printf("%d On ch=%d n=%d v=%d\n", notes[i].time, md.ch, md.n, md.v);
             }

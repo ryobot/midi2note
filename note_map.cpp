@@ -125,9 +125,11 @@ int make_maps(var_data &prev, var_data &cur, vector<key_value> &items) {
             }
         }
     }
+    /*
     for (int i = 1; i < items.size(); i++) {
         items[i].val /= (float)possible_map_cnt;
     }
+     */
 }
 
 int note2map(vector<notes> &notes, vector<key_value> &map, int timing_res) {

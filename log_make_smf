@@ -1,0 +1,19 @@
+#!/bin/sh
+
+log_filename=$1
+filename=`echo $log_filename | sed 's/_log//'`
+REMOTE_PATH=/root/midi2note/remote_compute
+MF2T_PATH=/root/mf2t
+TMP_FILE=tmp
+
+line_from=`grep -n "Result notes" $REMOTE_PATH/${log_filename} | cut -d':' -f1`
+line_from=`expr $line_from + 1`
+tail -n +$line_from $REMOTE_PATH/${log_filename} > ${TMP_FILE}_note.txt
+
+./note2midi ${TMP_FILE}_note.txt > $MF2T_PATH/${TMP_FILE}_mid.txt
+$MF2T_PATH/t2mf $MF2T_PATH/${TMP_FILE}_mid.txt $MF2T_PATH/${filename}.mid
+
+rm -f ${TMP_FILE}_note.txt
+rm -f $MF2T_PATH/${TMP_FILE}_mid.txt
+
+exit 0
