@@ -7,15 +7,15 @@ ssh $REMOTE ls -l /root/midi2note | tail -n +2 > $LS_REMOTE
 LS_LOCAL=ls_local_tmp
 ls -l /root/midi2note/remote_compute | tail -n +2 > $LS_LOCAL
 
-diff_before=`diff $LS_LOCAL $LS_REMOTE | grep ">"`
-diff_after=`diff $LS_LOCAL $LS_REMOTE | grep "<"`
+diff_before=`diff -b $LS_REMOTE $LS_LOCAL | grep "<"`
+diff_after=`diff -b $LS_REMOTE $LS_LOCAL | grep ">"`
 
 if [ "${diff_after}" = "" ] ; then
   echo "no new file on local."
 else
-  echo "new on local:"
+  echo "local (source):"
   echo "${diff_after}"
-  echo "overwritten on remote:"
+  echo "remote (destination):"
   echo "${diff_before}"
 
   echo -n "OK?(y/n):"

@@ -12,8 +12,10 @@ vector<key_value> ref_map;
 vector<key_value> cur_map;
 vector<notes> cur_notes;
 
-#define MAX_NOTES_GENERATOR 4
-//#define MAX_NOTE_POS_TMP 20
+#define MAX_NOTES_GENERATOR 5
+#define MAX_MASKS 10
+
+bool continue_if_minus = false;
 
 struct note_generator {
     int num_notes;
@@ -177,6 +179,103 @@ char* last_note_mask(vector<key_value> &map, char* last_note, char* mask, char* 
     return (mask);
 }
 
+char* last_note_mask2(vector<key_value> &map, char* last_note, char* mask, char* timing_str) {
+    strcpy(mask, "000000 : |           |           |           |           |           |           |");
+    float mask_note_val[128] = {0};
+    float mask_continue_val[128] = {0};
+
+    vector<int> note_nums;
+    vector<int> continue_nums;
+    char buf[8];
+    int offset = NOTE_NUM_OFFSET - MIN_NOTE_POS;
+    // last notes:
+    for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
+        if ( last_note[i] == 'o' ) {
+            note_nums.push_back(i + offset);
+        }
+        if ( last_note[i] == '+' ) {
+            continue_nums.push_back(i + offset);
+        }
+    }
+    bool time_ristriction = true;
+    if ( timing_str == NULL ) {
+        time_ristriction = false;
+    }
+    for (int i = 0; i < map.size(); i++) {
+        if ( time_ristriction && NULL == strstr(map[i].key, timing_str) ) continue;
+        
+        key_contents kc;
+        kc.init(map[i].key);
+
+        // search notes and continues in prev zone:
+        bool found = false;
+        for (int j = 0; j < note_nums.size(); j++) {
+            for (int k = 0; k < kc.prev_on.size(); k++) {
+                if ( note_nums[j] == kc.prev_on[k] ) {
+                    found = true;
+                    break;
+                }
+            }
+            if ( found ) break;
+        }
+        if ( !found ) {
+            for (int j = 0; j < continue_nums.size(); j++) {
+                for (int k = 0; k < kc.prev_continue.size(); k++) {
+                    if ( continue_nums[j] == kc.prev_continue[k] ) {
+                        found = true;
+                        break;
+                    }
+                }
+                if ( found ) break;
+            }
+        }
+        
+        if ( found ) {
+            for (int k = 0; k < kc.cur_on.size(); k++) {
+                int possible_note_pos = kc.cur_on[k] - offset;
+                mask_note_val[possible_note_pos] += map[i].val;
+            }
+            for (int k = 0; k < kc.cur_continue.size(); k++) {
+                int possible_note_pos = kc.cur_continue[k] - offset;
+                mask_continue_val[possible_note_pos] += map[i].val;
+            }
+        }
+    }
+    for (int cnt = 0; cnt < MAX_MASKS; cnt++) {
+        float max_val = 0;
+        int found = 0;
+        for (int i = 0; i < 128; i++) {
+            if ( max_val < mask_note_val[i] ) {
+                found = i;
+                max_val = mask_note_val[i];
+            }
+            if ( max_val < mask_continue_val[i] ) {
+                found = i + 128;
+                max_val = mask_continue_val[i];
+            }
+        }
+        if ( found ) {
+            if ( found >= 128 ) { // continue:
+                found -= 128;
+                if ( mask[found] == 'o' ) {
+                    mask[found] = 'x';
+                } else {
+                    mask[found] = '+';
+                }
+                mask_continue_val[found] = 0;
+            } else { // note:
+                if ( mask[found] == '+' ) {
+                    mask[found] = 'x';
+                } else {
+                    mask[found] = 'o';
+                }
+                mask_note_val[found] = 0;
+            }
+        }
+    }
+    return (mask);
+}
+
 float make_new_frame(
         notes &new_note, 
         notes &last_note, 
@@ -217,7 +316,8 @@ float make_new_frame(
     if ( mask != NULL ) {
         strcpy(ln_mask, mask);
     } else {
-        last_note_mask(ref, last_note.note, ln_mask, timing_str);
+        //last_note_mask(ref, last_note.note, ln_mask, timing_str);
+        last_note_mask2(ref, last_note.note, ln_mask, timing_str);
     }
     if ( verbose ) printf("\e[34m%s > %.8f\e[m\n", ln_mask, target_xcor);
     
@@ -256,7 +356,7 @@ float make_new_frame(
             mapcopy(max_items_add, items_add);
         }
     }
-    if ( best_xcor < cur_xcor ) {
+    if ( continue_if_minus && best_xcor < cur_xcor ) {
         // just continue previous notes when cannot gain the xcor.
         char cntn_note_str[128];
         if ( ( (last_note.time + 240) % 960) == 0 ) {
@@ -293,8 +393,11 @@ int main(int argc, char *argv[])
         num_frames = atoi(argv[3]);
     }
     bool verbose = false;
-    if ( argc == 5 && strcmp(argv[4], "-v") == 0 ) {
+    if ( argc == 5 && strstr(argv[4], "v") ) {
         verbose = true;
+    }
+    if ( argc == 5 && strstr(argv[4], "c") ) {
+        continue_if_minus = true;
     }
     bool reduced = true;
     
@@ -302,9 +405,16 @@ int main(int argc, char *argv[])
         printf("seed file:%s\n", argv[1]);
         printf("map file:%s\n", argv[2]);
         printf("frames to make:%d\n", num_frames);
+        printf("max masks:%d\n", MAX_MASKS);
+        printf("note generators:%d\n", MAX_NOTES_GENERATOR);
+        if ( continue_if_minus ) printf("continue if minus:true\n");
+        else printf("continue if minus:false\n");
         printf("CHANGE LOG:----\n");
         printf("ver.2015-07-07:Values for each note transition not divided by possible transition count. (note_map.cpp)\n");
         printf("ver.2015-07-08:Just continue previous notes when cannot gain the xcor.\n");
+        printf("ver.2015-07-14:Mask selected by map values top 16.\n");
+        printf("ver.2015-07-15:Just continue previous notes when cannot gain the xcor - bypassed.\n");
+        printf("ver.2015-07-16:Values for each note transition by number of concering notes. (note_map.cpp)\n");
     }
     
     // load src notes:

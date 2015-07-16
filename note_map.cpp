@@ -75,6 +75,7 @@ int make_map(char* buf_prev, char* buf_cur, float val, vector<key_value> &items)
     //printf("\e[32m%s\e[m\n", buf_prev);
     //printf("\e[34m%s\e[m\n\n", buf_cur);
     key_value item;
+    int num_tones = 0;
     char wbuf[16];
     strcpy(item.key, "");
     int offset = NOTE_NUM_OFFSET - MIN_NOTE_POS;
@@ -83,10 +84,12 @@ int make_map(char* buf_prev, char* buf_cur, float val, vector<key_value> &items)
         if ( buf_prev[i] == 'o' ) {
             sprintf(wbuf, "n%03d", i + offset);
             strcat(item.key, wbuf);
+            num_tones++;
         }
         if ( buf_prev[i] == '+' ) {
             sprintf(wbuf, "c%03d", i + offset);
             strcat(item.key, wbuf);
+            num_tones++;
         }
     }
     strcat(item.key, ">");
@@ -95,13 +98,15 @@ int make_map(char* buf_prev, char* buf_cur, float val, vector<key_value> &items)
         if ( buf_cur[i] == 'o' ) {
             sprintf(wbuf, "n%03d", i + offset);
             strcat(item.key, wbuf);
+            num_tones++;
         }
         if ( buf_cur[i] == '+' ) {
             sprintf(wbuf, "c%03d", i + offset);
             strcat(item.key, wbuf);
+            num_tones++;
         }
     }
-    item.val = val;
+    item.val = (float)num_tones;
     items.push_back(item);
 }
 
@@ -132,7 +137,7 @@ int make_maps(var_data &prev, var_data &cur, vector<key_value> &items) {
      */
 }
 
-int note2map(vector<notes> &notes, vector<key_value> &map, int timing_res) {
+int note2map(vector<notes> &notes, vector<key_value> &map, int timing_res, bool verbose) {
     vector<key_value> items;
     var_data varData[2];
     int current = 0;
@@ -164,6 +169,9 @@ int note2map(vector<notes> &notes, vector<key_value> &map, int timing_res) {
         int tmp = current;
         current = prev;
         prev = tmp;
+        if ( verbose && (j % 10) == 0 ) {
+            printf ("notes %d - maps %d\n", j, map.size());
+        }
     }
     return(map.size());
 }
