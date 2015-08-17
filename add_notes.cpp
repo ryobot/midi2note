@@ -12,10 +12,12 @@ vector<key_value> ref_map;
 vector<key_value> cur_map;
 vector<notes> cur_notes;
 
-#define MAX_NOTES_GENERATOR 5
+#define MAX_NOTES_GENERATOR 3
+#define INIT_NOTES_SEPARATION 12
 #define MAX_MASKS 10
 
 bool continue_if_minus = false;
+int max_masks = MAX_MASKS;
 
 struct note_generator {
     int num_notes;
@@ -32,7 +34,7 @@ struct note_generator {
         strcpy(mask, _mask);
         generators_num = MAX_NOTES_GENERATOR;
         for(int i = 0; i < MAX_NOTES_GENERATOR; i++) {
-            index[i] = MIN_NOTE_POS + i*12;
+            index[i] = MIN_NOTE_POS + i*INIT_NOTES_SEPARATION;
             type[i] = 'o';
         }
         strcpy(ref, last_note.note);
@@ -51,13 +53,13 @@ struct note_generator {
             if ( in > 0 ) {
                 iterate(in - 1);
                 index[in] = index[in - 1] + 1;
-                if ( index[in] < MIN_NOTE_POS + in*12 ) index[in] = MIN_NOTE_POS + in*12;
+                if ( index[in] < MIN_NOTE_POS + in*INIT_NOTES_SEPARATION ) index[in] = MIN_NOTE_POS + in*INIT_NOTES_SEPARATION;
             } else {
                 if ( --generators_num == 0 ) {
                     completed = true;
                 } else {
                     for(int i = 0; i < generators_num; i++) {
-                        index[i] = MIN_NOTE_POS + i*12;
+                        index[i] = MIN_NOTE_POS + i*INIT_NOTES_SEPARATION;
                         type[i] = 'o';
                     }
                 }
@@ -241,7 +243,7 @@ char* last_note_mask2(vector<key_value> &map, char* last_note, char* mask, char*
             }
         }
     }
-    for (int cnt = 0; cnt < MAX_MASKS; cnt++) {
+    for (int cnt = 0; cnt < max_masks; cnt++) {
         float max_val = 0;
         int found = 0;
         for (int i = 0; i < 128; i++) {
@@ -337,7 +339,7 @@ float make_new_frame(
         add_map(items_tmp, items_add);
         float xcor = correlation(items_tmp, ref);
         float diff = fabs(xcor - target_xcor);
-        //if ( verbose ) printf("\e[33m%s - %.8f\e[m\r", ng.buf, xcor);
+        if ( verbose ) printf("\e[33m%s - %.8f\e[m\r", ng.buf, xcor);
         //if ( xcor >= max_xcor ) {
         
         //if ( (xcor < cur_xcor && xcor > best_xcor) || 
@@ -399,13 +401,22 @@ int main(int argc, char *argv[])
     if ( argc == 5 && strstr(argv[4], "c") ) {
         continue_if_minus = true;
     }
+    if ( argc == 5 && strstr(argv[4], "h") ) {
+        max_masks = 16;
+        if ( strstr(argv[4], "h20") ) {
+            max_masks = 20;
+            if ( strstr(argv[4], "h24") ) {
+                max_masks = 24;
+            }
+        }
+    }
     bool reduced = true;
     
     if (verbose) {
         printf("seed file:%s\n", argv[1]);
         printf("map file:%s\n", argv[2]);
         printf("frames to make:%d\n", num_frames);
-        printf("max masks:%d\n", MAX_MASKS);
+        printf("max masks:%d\n", max_masks);
         printf("note generators:%d\n", MAX_NOTES_GENERATOR);
         if ( continue_if_minus ) printf("continue if minus:true\n");
         else printf("continue if minus:false\n");
@@ -415,6 +426,7 @@ int main(int argc, char *argv[])
         printf("ver.2015-07-14:Mask selected by map values top 16.\n");
         printf("ver.2015-07-15:Just continue previous notes when cannot gain the xcor - bypassed.\n");
         printf("ver.2015-07-16:Values for each note transition by number of concering notes. (note_map.cpp)\n");
+        printf("ver.2015-07-17:Max masks in command ooption. h/h20/h24 \n");
     }
     
     // load src notes:

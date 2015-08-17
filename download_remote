@@ -3,9 +3,9 @@
 REMOTE=$1
 
 LS_REMOTE=ls_remote_tmp
-ssh $REMOTE ls -l /root/midi2note | tail -n +2 > $LS_REMOTE
+ssh $REMOTE ls -l --time-style=iso /root/midi2note | tail -n +2 > $LS_REMOTE
 LS_LOCAL=ls_local_tmp
-ls -l /root/midi2note/remote_compute | tail -n +2 > $LS_LOCAL
+ls -l --time-style=iso /root/midi2note/remote_compute | tail -n +2 > $LS_LOCAL
 
 diff_before=`diff -b $LS_LOCAL $LS_REMOTE | grep "<"`
 diff_after=`diff -b $LS_LOCAL $LS_REMOTE | grep ">"`
@@ -23,7 +23,7 @@ else
   case $answer in
     y)
         for line in "${diff_after}" ; do
-          filename=`echo "$line" | awk '{ print $11 }'`
+          filename=`echo "$line" | awk '{ print $9 }'`
           scp -p $REMOTE:/root/midi2note/$filename /root/midi2note/remote_compute/
         done 
         ;;
