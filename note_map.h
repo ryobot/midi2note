@@ -40,5 +40,6 @@ int make_map(char* buf_prev, char* buf_cur, float val, vector<key_value> &items)
 int make_maps(var_data &prev, var_data &cur, vector<key_value> &items);
 int note2map(vector<notes> &notes, vector<key_value> &map, int timing_res=4, bool verbose=false);
 int note2mask(vector<notes> &notes, char* mask);
+int note2vmap(vector<notes> &notes, vector<key_value> &vmap);
 
 #endif

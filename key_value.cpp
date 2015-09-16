@@ -8,6 +8,7 @@ void key_value::init(char* buf) {
     char *valstr = strtok(tokens, ", \n");
     val = atof(valstr);
     strcpy(key, strtok(NULL, ", \n"));
+    updated = true;
 }
 
 void key_contents::init(char* key) {
@@ -113,10 +114,19 @@ int map2reduce(vector<key_value> &items) {
     for ( int i = 0; i < items.size(); i++ ) {
         if ( strcmp(item.key, items[i].key) == 0 ) {
             item.val += items[i].val;
+            if ( items[i].updated ) {
+                item.updated = items[i].updated;                
+            } else {
+                item.init_val = items[i].init_val;
+                item.x_val = items[i].x_val;
+            }
         } else {
             if ( i > 0 ) reduced.push_back(item);
             strcpy(item.key, items[i].key);
             item.val = items[i].val;
+            item.updated = items[i].updated;
+            item.init_val = items[i].init_val;
+            item.x_val = items[i].x_val;
         }
     }
     reduced.push_back(item);
@@ -146,13 +156,111 @@ int add_map(vector<key_value> &items, vector<key_value> &add) {
     return items.size();
 }
 
+/* value for key logical */
+float value_for_key_lg(char* key, vector<key_value> &items) {
+    int index = items.size();
+    int indexMax = index;
+    int offset = index / 2;
+    int dir = -1;
+    while ( offset != 0 ) {
+        index += dir*offset;
+        //printf("%d > ", index);
+        int cmp = 0;
+        if ( index < 0 ) {
+            cmp = -1;
+        } else if ( index >= indexMax ) {
+            cmp = 1;
+        } else {
+            cmp = strcmp(items[index].key, key);
+        }
+        if ( cmp > 0 ) {
+            dir = -1;
+        }
+        else if ( cmp < 0 ) {
+            dir = 1;
+        }
+        else { // cmp == 0:
+            return items[index].val;
+        }
+        if ( (offset != 1) && (offset & 1) ) offset += 1;
+        offset /= 2;
+    }
+    return(0.0);
+}
+
+/* value for key sequential */
 float value_for_key(char* key, vector<key_value> &items) {
     for ( int i = 0; i < items.size(); i++ ) {
-        if ( strcmp(items[i].key, key) == 0 ) {
+        int cmp = strcmp(items[i].key, key);
+        if ( cmp > 0 ) {
+            return(0.0);
+        }
+        if (  cmp == 0 ) {
             return items[i].val;
         }
     }
     return(0.0);
+}
+
+int index_for_key(char* key, vector<key_value> &items) {
+    int i = 0;
+    for ( ; i < items.size(); i++ ) {
+        int cmp = strcmp(items[i].key, key);
+        if ( cmp > 0 ) {
+            return i;
+        }
+        if (  cmp == 0 ) {
+            return -i - 1;
+        }
+    }
+    return i;
+}
+
+int index_for_key_lg(char* key, vector<key_value> &items) {
+    int index = items.size();
+    int indexMax = index;
+    int offset = index / 2;
+    int dir = -1;
+    while ( offset != 0 ) {
+        index += dir*offset;
+        //printf("%d > ", index);
+        int cmp = 0;
+        if ( index < 0 ) {
+            cmp = -1;
+        } else if ( index >= indexMax ) {
+            cmp = 1;
+        } else {
+            cmp = strcmp(items[index].key, key);
+        }
+        if ( cmp > 0 ) {
+            dir = -1;
+        }
+        else if ( cmp < 0 ) {
+            dir = 1;
+        }
+        else { // cmp == 0:
+            return -index - 1;
+        }
+        if ( (offset != 1) && (offset & 1) ) offset += 1;
+        offset /= 2;
+    }
+    if ( dir > 0 ) index += 1;
+    return index;
+}
+
+int add_map_insert(vector<key_value> &items, vector<key_value> &add) {
+    for (int i = 0; i < add.size(); i++) {
+        int pos = index_for_key(add[i].key, items);
+        if ( pos < 0 ) {
+            pos = -1 - pos;
+            items[pos].val += add[i].val;
+            items[pos].updated = true;
+        } else {
+            vector<key_value>::iterator it = items.begin();
+            items.insert(it + pos, add[i]);
+        }
+    }
+    return items.size();
 }
 
 float standard(vector<key_value> &items) {
@@ -160,7 +268,7 @@ float standard(vector<key_value> &items) {
     for ( int i = 0; i < items.size(); i++ ) {
         st += items[i].val*items[i].val;
     }
-    return sqrtf(st);
+    return st;
 }
 
 float x_standard(vector<key_value> &items_a, vector<key_value> &items_b) {
@@ -193,5 +301,78 @@ float x_standard_sorted(vector<key_value> &items_a, vector<key_value> &items_b) 
 
 float correlation(vector<key_value> &items_a, vector<key_value> &items_b) {
         //return x_standard(items_a, items_b)/(standard(items_a)*standard(items_b));
-        return x_standard_sorted(items_a, items_b)/(standard(items_a)*standard(items_b));
+        return x_standard_sorted(items_a, items_b)/(sqrtf(standard(items_a)*standard(items_b)));
+}
+
+/* functions for correlator */
+
+float calc_standard(vector<key_value> &items, float standard) {
+    for ( int i = 0; i < items.size(); i++ ) {
+        if ( items[i].updated ) {
+            standard -= items[i].init_val*items[i].init_val;
+            standard += items[i].val*items[i].val;
+        }
+    }
+    return standard;
+}
+
+float x_standard_sorted_snapshot(vector<key_value> &items_a, vector<key_value> &items_b) {
+    float xst = 0;
+    int ia = 0;
+    int ib = 0;
+    
+    while ( ia < items_a.size() && ib < items_b.size() ) {
+        int cmp = strcmp(items_a[ia].key, items_b[ib].key);
+        if ( cmp == 0 ) {
+            xst += items_a[ia].val * items_b[ib].val;
+            items_a[ia].x_val = items_b[ib].val;
+            items_b[ib].x_val = items_a[ia].val;
+            ia++;
+            ib++;
+        } else if ( cmp < 0 ) {
+            ia++;
+        } else {
+            ib++;
+        }
+    }
+    return xst;
+}
+
+float calc_x_standard_sorted(vector<key_value> &items, vector<key_value> &items_ref, float x_standard) {
+    for ( int i = 0; i < items.size(); i++ ) {
+        if ( items[i].updated ) {
+            if ( items[i].x_val == 0 ) {
+                items[i].x_val = value_for_key_lg(items[i].key, items_ref);
+            }
+            x_standard -= items[i].init_val*items[i].x_val;
+            x_standard += items[i].val*items[i].x_val;
+        }
+    }
+    return x_standard;
+}
+
+void set_update(vector<key_value> &items) {
+    for (int i = 0; i < items.size(); i++) {
+        items[i].updated = false;
+        items[i].init_val = items[i].val;
+        items[i].x_val = 0;
+    }
+}
+
+float correlator::calc_if_a(vector<key_value> &items_a, vector<key_value> &items_b) {
+    float calc_standard_a = calc_standard(items_a, standard_a);
+    //float calc_standard_a = standard(items_a);
+    float calc_x_standard = calc_x_standard_sorted(items_a, items_b, x_standard);
+    //float calc_x_standard = x_standard_sorted(items_a, items_b);
+    return calc_x_standard/(sqrtf(calc_standard_a*standard_b));
+}
+
+float correlator::init(vector<key_value> &items_a, vector<key_value> &items_b) {
+    standard_a = standard(items_a);
+    standard_b = standard(items_b);
+    set_update(items_a);
+    set_update(items_b);
+    x_standard = x_standard_sorted_snapshot(items_a, items_b);
+    correlation = x_standard/(sqrtf(standard_a*standard_b));
+    return correlation;
 }

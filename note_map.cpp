@@ -107,6 +107,9 @@ int make_map(char* buf_prev, char* buf_cur, float val, vector<key_value> &items)
         }
     }
     item.val = (float)num_tones;
+    item.init_val = 0;
+    item.x_val = 0;
+    item.updated = true;
     items.push_back(item);
 }
 
@@ -193,3 +196,47 @@ int note2mask(vector<notes> &notes, char* mask) {
     }
     return(cnt);
 }
+
+int note2vmap(vector<notes> &notes, vector<key_value> &vmap) {
+    int voices[73] = {0};
+    char v[4];
+    strcpy(v, "0c+");
+    char v_str[16];
+    strcpy(v_str, "cvdwefxgyazb");
+    char oct_str[8];
+    strcpy(oct_str, "0123456");
+    key_value item;
+    vmap.clear();
+    for (int j = 0; j < notes.size(); j++ ) {
+        // output:
+        for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
+            if ( notes[j].note[i] == 'o' ) {
+                voices[(i - MIN_NOTE_POS)] = 1;
+            }
+            if ( notes[j].note[i] == '+' ) {
+                voices[(i - MIN_NOTE_POS)] = -1;
+            }
+        }
+        strcpy(item.key, "@");
+        item.val = 1.0;
+        item.init_val = 0;
+        item.x_val = 0;
+        item.updated = true;
+        for ( int i = 0; i < 73; i++ ) {
+            if ( voices[i] ) {
+                v[0] = oct_str[i / 12];
+                v[1] = v_str[i % 12];
+                if ( voices[i] > 0 ) {
+                    v[2] = '+';
+                } else {
+                    v[2] = '-';
+                }
+                strcat(item.key, v);
+                voices[i] = 0;
+            }
+        }
+        vmap.push_back(item);
+    }
+    return(vmap.size());
+}
+
