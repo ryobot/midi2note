@@ -22,10 +22,14 @@ else
   read answer
   case $answer in
     y)
-        for line in "${diff_after}" ; do
+        IFS=$'\n'
+        for line in `echo "${diff_after}"` ; do
+          echo $line
           filename=`echo "$line" | awk '{ print $9 }'`
+          echo "copying ${REMOTE}:/root/midi2note/${filename} /root/midi2note/remote_compute/"
           scp -p $REMOTE:/root/midi2note/$filename /root/midi2note/remote_compute/
-        done 
+        done
+        IFS=$' \t\n'
         ;;
     *)
         ;;

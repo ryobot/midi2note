@@ -12,6 +12,8 @@
 #include <functional>
 using namespace std;
 
+#define TABLE_LENGTH 1023
+
 struct key_value {
     float val;
     float init_val;
@@ -27,10 +29,20 @@ struct key_contents {
     vector<int> prev_continue;
     vector<int> cur_on;
     vector<int> cur_continue;
+    char prevKey[64];
+    char nextKey[64];
     char timing_str[8];
     
     void init(char* key);
     void dump();
+};
+
+struct key_value_hash {
+    vector<key_value> table[TABLE_LENGTH];
+    
+    void init(vector<key_value> &items);
+    float value_for_key_in_hash(char* key);
+    void dump_table(char* key);
 };
 
 struct correlator {
@@ -40,6 +52,7 @@ struct correlator {
     float x_standard;
     
     float calc_if_a(vector<key_value> &items_a, vector<key_value> &items_b);
+    float calc_if_a_kvh(vector<key_value> &items_a, key_value_hash &kvh);
     float init(vector<key_value> &items_a, vector<key_value> &items_b);
 };
 
@@ -48,6 +61,7 @@ int map2reduce(vector<key_value> &items);
 float value_for_key(char* key, vector<key_value> &items);
 int index_for_key(char* key, vector<key_value> &items);
 float value_for_key_lg(char* key, vector<key_value> &items);
+float value_for_key_lg_debug(char* key, vector<key_value> &items);
 int index_for_key_lg(char* key, vector<key_value> &items);
 float standard(vector<key_value> &items);
 float x_standard(vector<key_value> &items_a, vector<key_value> &items_b);
@@ -58,5 +72,6 @@ int add_map_old(vector<key_value> &items, vector<key_value> &add);
 int mapcopy(vector<key_value> &dst, vector<key_value> &src);
 void resumeKey(key_value &item);
 void map_sort(vector<key_value> &items);
+size_t hash3bit(char *key);
 
 #endif

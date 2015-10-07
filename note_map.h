@@ -26,6 +26,7 @@ struct var_data {
     char original[256];
     vector<var> strs;
     vector<int> note_pos;
+    int typebits;
     
     int note_cnt() {
         return note_pos.size();
@@ -41,5 +42,9 @@ int make_maps(var_data &prev, var_data &cur, vector<key_value> &items);
 int note2map(vector<notes> &notes, vector<key_value> &map, int timing_res=4, bool verbose=false);
 int note2mask(vector<notes> &notes, char* mask);
 int note2vmap(vector<notes> &notes, vector<key_value> &vmap);
+
+void init_note_num();
+char* get_n_note(int num);
+char* get_c_note(int num);
 
 #endif

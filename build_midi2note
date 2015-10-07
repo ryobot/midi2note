@@ -4,6 +4,7 @@ prog=$1
 g++ -c key_value.cpp -o key_value.o
 g++ -c note_map.cpp -o note_map.o
 g++ -c notes.cpp -o notes.o
+g++ -c note_generator.cpp -o note_generator.o
 g++ -c ${prog}.cpp -o ${prog}.o
-g++ ${prog}.o key_value.o note_map.o notes.o -o ${prog}
+g++ ${prog}.o key_value.o note_map.o notes.o note_generator.o -o ${prog}
 exit 0

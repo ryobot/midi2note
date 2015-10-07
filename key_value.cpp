@@ -16,6 +16,8 @@ void key_contents::init(char* key) {
     prev_continue.clear();
     cur_on.clear();
     cur_continue.clear();
+    strcpy(prevKey, "");
+    strcpy(nextKey, "");
     char buf[8];   
     bool prev_zone = true;
     for (int i = 0; i < strlen(key); i++ ) {
@@ -29,11 +31,27 @@ void key_contents::init(char* key) {
             buf[2] = key[i + 3];
             buf[3] = 0;
             if ( prev_zone ) {
-                if ( key[i] == 'n' ) prev_on.push_back(atoi(buf));
-                else prev_continue.push_back(atoi(buf));
+                if ( key[i] == 'n' ) {
+                    prev_on.push_back(atoi(buf));
+                    strcat(prevKey, "n");
+                    strcat(prevKey, buf);
+                }
+                else {
+                    prev_continue.push_back(atoi(buf));
+                    strcat(prevKey, "c");
+                    strcat(prevKey, buf);
+                }
             } else {
-                if ( key[i] == 'n' ) cur_on.push_back(atoi(buf));
-                else cur_continue.push_back(atoi(buf));
+                if ( key[i] == 'n' ) {
+                    cur_on.push_back(atoi(buf));
+                    strcat(nextKey, "n");
+                    strcat(nextKey, buf);
+                }
+                else {
+                    cur_continue.push_back(atoi(buf));
+                    strcat(nextKey, "c");
+                    strcat(nextKey, buf);
+                }
             }
         }
         if ( key[i] == 't' ) {
@@ -114,19 +132,19 @@ int map2reduce(vector<key_value> &items) {
     for ( int i = 0; i < items.size(); i++ ) {
         if ( strcmp(item.key, items[i].key) == 0 ) {
             item.val += items[i].val;
-            if ( items[i].updated ) {
-                item.updated = items[i].updated;                
-            } else {
-                item.init_val = items[i].init_val;
-                item.x_val = items[i].x_val;
-            }
+            //if ( items[i].updated ) {
+            //    item.updated = items[i].updated;                
+            //} else {
+            //    item.init_val = items[i].init_val;
+            //    item.x_val = items[i].x_val;
+            //}
         } else {
             if ( i > 0 ) reduced.push_back(item);
             strcpy(item.key, items[i].key);
             item.val = items[i].val;
-            item.updated = items[i].updated;
-            item.init_val = items[i].init_val;
-            item.x_val = items[i].x_val;
+            //item.updated = items[i].updated;
+            //item.init_val = items[i].init_val;
+            //item.x_val = items[i].x_val;
         }
     }
     reduced.push_back(item);
@@ -160,6 +178,7 @@ int add_map(vector<key_value> &items, vector<key_value> &add) {
 float value_for_key_lg(char* key, vector<key_value> &items) {
     int index = items.size();
     int indexMax = index;
+    if ( index & 1 ) index += 1;
     int offset = index / 2;
     int dir = -1;
     while ( offset != 0 ) {
@@ -184,6 +203,40 @@ float value_for_key_lg(char* key, vector<key_value> &items) {
         }
         if ( (offset != 1) && (offset & 1) ) offset += 1;
         offset /= 2;
+        if ( index == 1 && offset == 0 && dir == -1 ) offset = 1;
+    }
+    return(0.0);
+}
+
+float value_for_key_lg_debug(char* key, vector<key_value> &items) {
+    int index = items.size();
+    int indexMax = index;
+    if ( index & 1 ) index += 1;
+    int offset = index / 2;
+    int dir = -1;
+    while ( offset != 0 ) {
+        index += dir*offset;
+        printf("(%d)%d > ", dir*offset, index);
+        int cmp = 0;
+        if ( index < 0 ) {
+            cmp = -1;
+        } else if ( index >= indexMax ) {
+            cmp = 1;
+        } else {
+            cmp = strcmp(items[index].key, key);
+        }
+        if ( cmp > 0 ) {
+            dir = -1;
+        }
+        else if ( cmp < 0 ) {
+            dir = 1;
+        }
+        else { // cmp == 0:
+            return items[index].val;
+        }
+        if ( (offset != 1) && (offset & 1) ) offset += 1;
+        offset /= 2;
+        if ( index == 1 && offset == 0 && dir == -1 ) offset = 1;
     }
     return(0.0);
 }
@@ -219,6 +272,7 @@ int index_for_key(char* key, vector<key_value> &items) {
 int index_for_key_lg(char* key, vector<key_value> &items) {
     int index = items.size();
     int indexMax = index;
+    if ( index & 1 ) index += 1;
     int offset = index / 2;
     int dir = -1;
     while ( offset != 0 ) {
@@ -243,23 +297,63 @@ int index_for_key_lg(char* key, vector<key_value> &items) {
         }
         if ( (offset != 1) && (offset & 1) ) offset += 1;
         offset /= 2;
+        if ( index == 1 && offset == 0 && dir == -1 ) offset = 1;
     }
     if ( dir > 0 ) index += 1;
     return index;
 }
 
+size_t hash3bit(char *key) {
+    if ( key == 0 ) return( 0 );
+    size_t h = 0;
+    while ( *key ) {
+        h = ( h << 1 ) ^ ( *key++ );
+    }
+    return(h%TABLE_LENGTH);
+}
+
+void key_value_hash::init(vector<key_value> &items) {
+    for ( int i = 0; i < TABLE_LENGTH; i++ ) table[i].clear();
+    for ( int i = 0; i < items.size(); i++ ) {
+        table[hash3bit(items[i].key)].push_back(items[i]);
+    }
+}
+
+float key_value_hash::value_for_key_in_hash(char* key) {
+    //return value_for_key_lg(key, table[hash3bit(key)]);
+    return value_for_key_lg(key, table[hash3bit(key)]);
+}
+
+void key_value_hash::dump_table(char* key) {
+    int table_index = hash3bit(key);
+    printf ("table index:%d items:%d\n", table_index, table[table_index].size());
+    float val = value_for_key_lg_debug(key, table[table_index]);
+    printf ("... value : %.8f\n", val);
+    for ( int i = 0; i < 10; i++ ) {
+    //for ( int i = 0; i < table[table_index].size(); i++ ) {
+        printf ("key:%s value:%.8f\n", table[table_index][i].key, table[table_index][i].val);
+    }
+}
+
+
 int add_map_insert(vector<key_value> &items, vector<key_value> &add) {
+    vector<key_value> addnew;
+    addnew.clear();
     for (int i = 0; i < add.size(); i++) {
-        int pos = index_for_key(add[i].key, items);
+        //int pos = index_for_key(add[i].key, items);
+        int pos = index_for_key_lg(add[i].key, items);
         if ( pos < 0 ) {
             pos = -1 - pos;
             items[pos].val += add[i].val;
             items[pos].updated = true;
         } else {
-            vector<key_value>::iterator it = items.begin();
-            items.insert(it + pos, add[i]);
+            //vector<key_value>::iterator it = items.begin();
+            //items.insert(it + pos, add[i]);
+            addnew.push_back(add[i]);
         }
     }
+    //map_sort(items);
+    items.insert(items.end(), addnew.begin(), addnew.end());
     return items.size();
 }
 
@@ -341,8 +435,21 @@ float x_standard_sorted_snapshot(vector<key_value> &items_a, vector<key_value> &
 float calc_x_standard_sorted(vector<key_value> &items, vector<key_value> &items_ref, float x_standard) {
     for ( int i = 0; i < items.size(); i++ ) {
         if ( items[i].updated ) {
-            if ( items[i].x_val == 0 ) {
+            if ( items[i].x_val < 0 ) {
                 items[i].x_val = value_for_key_lg(items[i].key, items_ref);
+            }
+            x_standard -= items[i].init_val*items[i].x_val;
+            x_standard += items[i].val*items[i].x_val;
+        }
+    }
+    return x_standard;
+}
+
+float calc_x_standard_sorted_kvh(vector<key_value> &items, key_value_hash &kvh, float x_standard) {
+    for ( int i = 0; i < items.size(); i++ ) {
+        if ( items[i].updated ) {
+            if ( items[i].x_val < 0 ) {
+                items[i].x_val = kvh.value_for_key_in_hash(items[i].key);
             }
             x_standard -= items[i].init_val*items[i].x_val;
             x_standard += items[i].val*items[i].x_val;
@@ -355,7 +462,7 @@ void set_update(vector<key_value> &items) {
     for (int i = 0; i < items.size(); i++) {
         items[i].updated = false;
         items[i].init_val = items[i].val;
-        items[i].x_val = 0;
+        items[i].x_val = -1;
     }
 }
 
@@ -363,6 +470,14 @@ float correlator::calc_if_a(vector<key_value> &items_a, vector<key_value> &items
     float calc_standard_a = calc_standard(items_a, standard_a);
     //float calc_standard_a = standard(items_a);
     float calc_x_standard = calc_x_standard_sorted(items_a, items_b, x_standard);
+    //float calc_x_standard = x_standard_sorted(items_a, items_b);
+    return calc_x_standard/(sqrtf(calc_standard_a*standard_b));
+}
+
+float correlator::calc_if_a_kvh(vector<key_value> &items_a, key_value_hash &kvh) {
+    float calc_standard_a = calc_standard(items_a, standard_a);
+    //float calc_standard_a = standard(items_a);
+    float calc_x_standard = calc_x_standard_sorted_kvh(items_a, kvh, x_standard);
     //float calc_x_standard = x_standard_sorted(items_a, items_b);
     return calc_x_standard/(sqrtf(calc_standard_a*standard_b));
 }

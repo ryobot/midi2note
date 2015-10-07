@@ -13,6 +13,10 @@ vector<notes> notes;
 
 int main(int argc, char *argv[])
 {
+    // initializations:
+    setvbuf(stdout, (char *)NULL, _IONBF, 0);
+    init_note_num();
+    
     if ( argc < 1 ) {
         printf("usage : note2map [txt note file]\n");
         exit(1);
@@ -24,8 +28,8 @@ int main(int argc, char *argv[])
     load_note_file(argv[1], notes);
     if (verbose)    printf ("notes length:%d\n", notes.size());
     if (verbose)    printf ("making map...");
-    //note2map(notes, map, 4, verbose);
-    note2vmap(notes, map);
+    note2map(notes, map, 4, verbose);
+    //note2vmap(notes, map);
     if (verbose)    printf ("%d items\n", map.size());
     if (verbose)    printf ("reducing map...");
     map2reduce(map);

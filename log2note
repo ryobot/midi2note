@@ -1,0 +1,10 @@
+#!/bin/sh
+
+log_filename=$1
+note_filename=$2
+
+line_from=`grep -n "Result notes" $log_filename | cut -d':' -f1`
+line_from=`expr $line_from + 1`
+tail -n +$line_from ${log_filename} > ${note_filename}
+
+exit 0

@@ -8,184 +8,16 @@
 using namespace std;
 
 #include "note_map.h"
+#include "note_generator.h"
 
 vector<key_value> ref_map;
 vector<key_value> cur_map;
 vector<notes> cur_notes;
 
-#define MAX_NOTES_GENERATOR 4
-#define INIT_NOTES_SEPARATION 12
-#define MAX_MASKS 10
-
 bool continue_if_minus = false;
 int max_masks = MAX_MASKS;
 
-clock_t add_map_time, correlation_time, generate_time, while_time;
-
-struct note_generator {
-    int num_notes;
-    int index[MAX_NOTES_GENERATOR];
-    char type[MAX_NOTES_GENERATOR];
-    char buf[128];
-    char ref[128];
-    char mask[128];
-    bool completed;
-    int beat_pos;
-    int generators_num;
-    
-    void init(notes &last_note, const char* _mask) {
-        strcpy(mask, _mask);
-        generators_num = MAX_NOTES_GENERATOR;
-        for(int i = 0; i < MAX_NOTES_GENERATOR; i++) {
-            index[i] = MIN_NOTE_POS + i*INIT_NOTES_SEPARATION;
-            type[i] = 'o';
-        }
-        strcpy(ref, last_note.note);
-        sprintf(buf, "%06d : |           |           |           |           |           |           |", last_note.time + 240);
-        beat_pos = (last_note.time + 240) % 960;
-        completed = false;
-    }
-    void iterate(int in) {
-        if ( is_note_ch(ref[index[in]]) && type[in] == 'o' ) {
-            type[in] = '+';
-        } else {
-            index[in]++;
-            type[in] = 'o';
-        }
-        if ( index[in] >= MAX_NOTE_POS ) {
-            if ( in > 0 ) {
-                iterate(in - 1);
-                index[in] = index[in - 1] + 1;
-                if ( index[in] < MIN_NOTE_POS + in*INIT_NOTES_SEPARATION ) index[in] = MIN_NOTE_POS + in*INIT_NOTES_SEPARATION;
-            } else {
-                if ( --generators_num == 0 ) {
-                    completed = true;
-                } else {
-                    for(int i = 0; i < generators_num; i++) {
-                        index[i] = MIN_NOTE_POS + i*INIT_NOTES_SEPARATION;
-                        type[i] = 'o';
-                    }
-                }
-            }
-        }
-    }
-    char* get_note() {
-        for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
-            if ( (i - MIN_NOTE_POS) % 12 == 0 ) {
-                buf[i] = '|';
-            } else {
-                if ( beat_pos == 0 ) {
-                    buf[i] = '-';
-                } else {
-                    buf[i] = ' ';
-                }
-            }
-            for(int j = 0; j < generators_num; j++) {
-                if ( index[j] == i ) {
-                    buf[i] = type[j];
-                    break;
-                }
-            }
-        }
-        iterate(generators_num - 1);
-        return buf;
-    }
-    bool maskChk() {
-        if ( mask[0] == 0 ) {
-            return(true);
-        }
-        for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
-            if ( buf[i] == 'o' && !(mask[i] == 'o' || mask[i] == 'x') ) {
-                return(false);
-            }
-            if ( buf[i] == '+' && !(mask[i] == '+' || mask[i] == 'x') ) {
-                return(false);
-            }
-        }
-        return(true);
-    }
-    bool continueChk() {
-        for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
-            if ( buf[i] == '+' && !is_note_ch(ref[i]) ) {
-                return(false);
-            }
-        }
-        return(true);
-    }
-};
-
-char* last_note_mask(vector<key_value> &map, char* last_note, char* mask, char* timing_str) {
-    strcpy(mask, "000000 : |           |           |           |           |           |           |");
-
-    vector<int> note_nums;
-    vector<int> continue_nums;
-    char buf[8];
-    int offset = NOTE_NUM_OFFSET - MIN_NOTE_POS;
-    // last notes:
-    for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
-        if ( last_note[i] == 'o' ) {
-            note_nums.push_back(i + offset);
-        }
-        if ( last_note[i] == '+' ) {
-            continue_nums.push_back(i + offset);
-        }
-    }
-    bool time_ristriction = true;
-    if ( timing_str == NULL ) {
-        time_ristriction = false;
-    }
-    for (int i = 0; i < map.size(); i++) {
-        if ( time_ristriction && NULL == strstr(map[i].key, timing_str) ) continue;
-        
-        key_contents kc;
-        kc.init(map[i].key);
-
-        // search notes and continues in prev zone:
-        bool found = false;
-        for (int j = 0; j < note_nums.size(); j++) {
-            for (int k = 0; k < kc.prev_on.size(); k++) {
-                if ( note_nums[j] == kc.prev_on[k] ) {
-                    found = true;
-                    break;
-                }
-            }
-            if ( found ) break;
-        }
-        if ( !found ) {
-            for (int j = 0; j < continue_nums.size(); j++) {
-                for (int k = 0; k < kc.prev_continue.size(); k++) {
-                    if ( continue_nums[j] == kc.prev_continue[k] ) {
-                        found = true;
-                        break;
-                    }
-                }
-                if ( found ) break;
-            }
-        }
-        
-        if ( found ) {
-            for (int k = 0; k < kc.cur_on.size(); k++) {
-                int possible_note_pos = kc.cur_on[k] - offset;
-                if ( mask[possible_note_pos] == 'x' ) continue;
-                if ( mask[possible_note_pos] == '+' ) {
-                    mask[possible_note_pos] = 'x';
-                } else {
-                    mask[possible_note_pos] = 'o';
-                }
-            }
-            for (int k = 0; k < kc.cur_continue.size(); k++) {
-                int possible_note_pos = kc.cur_continue[k] - offset;
-                if ( mask[possible_note_pos] == 'x' ) continue;
-                if ( mask[possible_note_pos] == 'o' ) {
-                    mask[possible_note_pos] = 'x';
-                } else {
-                    mask[possible_note_pos] = '+';
-                }
-            }
-        }        
-    }
-    return (mask);
-}
+clock_t add_map_time, correlation_time, generate_time, while_time, recalc_time, mask_time;
 
 char* voice_note_mask(vector<key_value> &map, char* mask) {
     char v[3];
@@ -215,112 +47,6 @@ char* voice_note_mask(vector<key_value> &map, char* mask) {
     return mask;
 }
 
-char* last_note_mask2(vector<key_value> &map, char* last_note, char* mask, char* timing_str) {
-    strcpy(mask, "000000 : |           |           |           |           |           |           |");
-    float mask_note_val[128] = {0};
-    float mask_continue_val[128] = {0};
-
-    vector<int> note_nums;
-    vector<int> continue_nums;
-    char buf[8];
-    int offset = NOTE_NUM_OFFSET - MIN_NOTE_POS;
-    // last notes:
-    for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
-        if ( last_note[i] == 'o' ) {
-            note_nums.push_back(i + offset);
-        }
-        if ( last_note[i] == '+' ) {
-            continue_nums.push_back(i + offset);
-        }
-    }
-    bool time_ristriction = true;
-    if ( timing_str == NULL ) {
-        time_ristriction = false;
-    }
-    for (int i = 0; i < map.size(); i++) {
-        if ( time_ristriction && NULL == strstr(map[i].key, timing_str) ) continue;
-        
-        key_contents kc;
-        kc.init(map[i].key);
-
-        // search notes and continues in prev zone:
-        bool found = false;
-        for (int j = 0; j < note_nums.size(); j++) {
-            for (int k = 0; k < kc.prev_on.size(); k++) {
-                if ( note_nums[j] == kc.prev_on[k] ) {
-                    found = true;
-                    break;
-                }
-            }
-            if ( found ) break;
-        }
-        if ( !found ) {
-            for (int j = 0; j < continue_nums.size(); j++) {
-                for (int k = 0; k < kc.prev_continue.size(); k++) {
-                    if ( continue_nums[j] == kc.prev_continue[k] ) {
-                        found = true;
-                        break;
-                    }
-                }
-                if ( found ) break;
-            }
-        }
-        
-        if ( found ) {
-            for (int k = 0; k < kc.cur_on.size(); k++) {
-                int possible_note_pos = kc.cur_on[k] - offset;
-                mask_note_val[possible_note_pos] += map[i].val;
-            }
-            for (int k = 0; k < kc.cur_continue.size(); k++) {
-                int possible_note_pos = kc.cur_continue[k] - offset;
-                bool can_continue = false;
-                for (int j = 0; j < note_nums.size(); j++) {
-                    if (note_nums[j] == possible_note_pos + offset) can_continue = true;
-                }
-                for (int j = 0; j < continue_nums.size(); j++) {
-                    if (continue_nums[j] == possible_note_pos + offset) can_continue = true;
-                }
-                if ( can_continue ) {
-                    mask_continue_val[possible_note_pos] += map[i].val;
-                }
-            }
-        }
-    }
-    for (int cnt = 0; cnt < max_masks; cnt++) {
-        float max_val = 0;
-        int found = 0;
-        for (int i = 0; i < 128; i++) {
-            if ( max_val < mask_note_val[i] ) {
-                found = i;
-                max_val = mask_note_val[i];
-            }
-            if ( max_val < mask_continue_val[i] ) {
-                found = i + 128;
-                max_val = mask_continue_val[i];
-            }
-        }
-        if ( found ) {
-            if ( found >= 128 ) { // continue:
-                found -= 128;
-                if ( mask[found] == 'o' ) {
-                    mask[found] = 'x';
-                } else {
-                    mask[found] = '+';
-                }
-                mask_continue_val[found] = 0;
-            } else { // note:
-                if ( mask[found] == '+' ) {
-                    mask[found] = 'x';
-                } else {
-                    mask[found] = 'o';
-                }
-                mask_note_val[found] = 0;
-            }
-        }
-    }
-    return (mask);
-}
-
 float make_new_frame(
         notes &new_note, 
         notes &last_note, 
@@ -333,6 +59,7 @@ float make_new_frame(
 ) 
 {
     clock_t start, end, st, ed;
+    start = clock();
     
     float best_xcor = 0.0;
     vector<key_value> max_items_add;
@@ -358,8 +85,10 @@ float make_new_frame(
     ng.init(last_note, ln_mask);
     int cnt = 0;
 
-    st = clock();
-    start = clock();
+    end = clock();
+    mask_time += end - start;
+    start = end;
+    st = end;
 
     while (!ng.completed) {
         
@@ -380,7 +109,6 @@ float make_new_frame(
         start = end;
 
         float xcor = corr.calc_if_a(items_tmp, ref);
-        //float xcor = correlation(items_tmp, ref);
 
         end = clock();
         correlation_time += end - start;
@@ -424,8 +152,12 @@ float make_new_frame(
     }
     add_map_insert(map, max_items_add);
     float re_xcor = corr.init(map, ref);
-    //float re_xcor = correlation(map, ref);
-    //printf("best:%.8f - re-calc:%.8f\n", best_xcor, re_xcor);
+
+    end = clock();
+    recalc_time += end - start;
+    start = end;
+
+    printf("best:%.8f - re-calc:%.8f\n", best_xcor, re_xcor);
     return(re_xcor);
 }
 
@@ -498,6 +230,8 @@ int main(int argc, char *argv[])
     correlation_time = (clock_t)0;
     while_time = (clock_t)0;
     generate_time = (clock_t)0;
+    recalc_time = (clock_t)0;
+    mask_time = (clock_t)0;
     
     // new frames:
     for (int i = 0; i < num_frames; i++ ) {
@@ -524,6 +258,7 @@ int main(int argc, char *argv[])
     }
     printf ("add map time: %.2f s / correlation time: %.2f s\n", (double)add_map_time/CLOCKS_PER_SEC, (double)correlation_time/CLOCKS_PER_SEC);
     printf ("generate time: %.2f / while time: %.2f s\n", (double)generate_time/CLOCKS_PER_SEC, (double)while_time/CLOCKS_PER_SEC);
+    printf ("mask time: %.2f s / re-calc time: %.2f s\n", (double)mask_time/CLOCKS_PER_SEC, (double)recalc_time/CLOCKS_PER_SEC);
     if ( verbose ) {
         printf ("Result notes:---------------\n");
         for (int i = 0; i < cur_notes.size(); i++) {
