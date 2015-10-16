@@ -105,7 +105,9 @@ int load_key_value_file(char* filename, vector<key_value> &items, bool reduced) 
 
 int mapcopy(vector<key_value> &dst, vector<key_value> &src) {
     dst.clear();
-    copy(src.begin(), src.end(), back_inserter(dst));
+    //copy(src.begin(), src.end(), back_inserter(dst));
+    dst.resize(src.size());
+    copy(src.begin(), src.end(), dst.begin());
     return dst.size();
 }
 

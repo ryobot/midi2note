@@ -356,7 +356,7 @@ float make_new_frame(
         add_map_time += end - start;
         start = end;
 
-        float xcor = corr.calc_if_a(items_tmp, mask_map);
+        float xcor = corr.calc_if_a(items_tmp, ref);
         
         end = clock();
         correlation_time += end - start;
@@ -475,11 +475,14 @@ float mix_new_frame(
     if ( mask != NULL ) {
         strcpy(ln_mask, mask);
     } else {
-        last_note_mask2(ref, last_note.note, ln_mask, timing_str, mask_map);
+        //last_note_mask2(ref, last_note.note, ln_mask, timing_str, mask_map);
+        last_note_mask3(ref, lastVar, ln_mask, timing_str, mask_map);
     }
     mask_mix(ln_mask, new_note.note);
     note_generator ng;
-    ng.init(last_note, ln_mask, generators);
+    // Including no add notes in mixing:
+    bool include_none = true;
+    ng.init(last_note, ln_mask, generators, include_none);
     int cnt = 0;
 
     end = clock();
@@ -611,37 +614,37 @@ int main(int argc, char *argv[])
             max_masks = 73;
         }
     }
-    int generators = 5;
+    int generators = 1;
     if ( argc == 5 && strstr(argv[4], "g") ) {
-        if ( strstr(argv[4], "g2") ) {
-            generators = 2;
+        for (int i = 1; i <= 9; i++) {
+            char num_str[8];
+            sprintf(num_str, "g%d", i);
+            if ( strstr(argv[4], num_str) ) {
+                generators = i;
+                break;
+            }
         }
-        if ( strstr(argv[4], "g3") ) {
-            generators = 3;
-        }
-        if ( strstr(argv[4], "g4") ) {
-            generators = 4;
-        }
-        if ( strstr(argv[4], "g6") ) {
-            generators = 6;
-        }
-        if ( strstr(argv[4], "g7") ) {
-            generators = 7;
+    }
+    int generators_decrement = 0;
+    if ( argc == 5 && strstr(argv[4], "d") ) {
+        for (int i = 1; i <= 9; i++) {
+            char num_str[8];
+            sprintf(num_str, "d%d", i);
+            if ( strstr(argv[4], num_str) ) {
+                generators_decrement = i;
+                break;
+            }
         }
     }
     int num_mix = 1;
     if ( argc == 5 && strstr(argv[4], "m") ) {
-        if ( strstr(argv[4], "m2") ) {
-            num_mix = 2;
-        }
-        if ( strstr(argv[4], "m3") ) {
-            num_mix = 3;
-        }
-        if ( strstr(argv[4], "m4") ) {
-            num_mix = 4;
-        }
-        if ( strstr(argv[4], "m5") ) {
-            num_mix = 5;
+        for (int i = 1; i <= 9; i++) {
+            char num_str[8];
+            sprintf(num_str, "m%d", i);
+            if ( strstr(argv[4], num_str) ) {
+                num_mix = i;
+                break;
+            }
         }
     }
     bool reduced = true;
@@ -652,6 +655,7 @@ int main(int argc, char *argv[])
         printf("frames to make:%d\n", num_frames);
         printf("max masks:%d\n", max_masks);
         printf("note generators:%d\n", generators);
+        printf("generators decrement:%d\n", generators_decrement);
         printf("mixing:%d\n", num_mix);
         //if ( continue_if_minus ) printf("continue if minus:true\n");
         //else printf("continue if minus:false\n");
@@ -666,6 +670,8 @@ int main(int argc, char *argv[])
         printf("ver.2015-09-15:add_tframes / Branched from add_frames \n");
         printf("ver.2015-09-xx:Faster correlation \n");
         printf("ver.2015-10-07:MIX MODE added\n");
+        printf("ver.2015-10-xx:No notes added when its correlation is best in mixing.\n");
+        printf("ver.2015-10-16:Generators decrement\n");
     }
     
     // load src notes:
@@ -686,7 +692,7 @@ int main(int argc, char *argv[])
     for (mix = 0; mix < num_mix; mix++) { // start of mix for loop:
     
     if ( verbose ) {
-        printf("mix %d ---------------------\n", mix);
+        printf("mix %d / generators %d ---------------------\n", mix, generators);
     }
     
     cur_notes.clear();
@@ -796,6 +802,11 @@ int main(int argc, char *argv[])
     org_notes.clear();
     for (int i = 0; i < cur_notes.size(); i++) {
         org_notes.push_back(cur_notes[i]);
+    }
+    
+    if ( generators_decrement ) {
+        generators -= generators_decrement;
+        if ( generators <= 0 ) generators = 1;
     }
     
     } // end of mix for loop:

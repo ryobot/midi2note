@@ -77,6 +77,34 @@ int make_vars(char* buf, var_data& vars) {
     return vars.strs.size();
 }
 
+int make_vars_accept_none(char* buf, var_data& vars) {
+    vars.strs.clear();
+    int num_pos = get_vars(buf, vars);
+    // original:
+    var newstr;
+    newstr.putstr(buf);
+    int num_notes = newstr.note_cnt;
+    vars.strs.push_back(newstr);
+    // missings:
+    int patterns = 1;
+    for (int i = 0; i < num_pos; i++) {
+        patterns *= 2;
+    }
+    // no notes (i = patterns - 1) is a variation:
+    for (int i = 1; i < patterns ; i++) {
+        strcpy(newstr.str, buf);
+        newstr.note_cnt = num_notes;
+        for (int pos = 0; pos < num_pos; pos++) {
+            if ( (i >> pos) % 2 ) {
+                newstr.str[vars.note_pos[pos]] = ' ';
+                newstr.note_cnt--;
+            }
+        }
+        vars.strs.push_back(newstr);
+    }
+    return vars.strs.size();
+}
+
 bool is_note_ch(char ch) {
     if ( ch == ' ' || ch == '-' || ch == '|' ) {
         return false;

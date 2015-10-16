@@ -35,6 +35,7 @@ struct var_data {
 
 int get_vars(char* buf, var_data& vars );
 int make_vars(char* buf, var_data& vars);
+int make_vars_accept_none(char* buf, var_data& vars);
 bool is_note_ch(char ch);
 bool is_possible_map(char* buf_prev, char* buf_cur, char* org_prev, char* org_cur);
 int make_map(char* buf_prev, char* buf_cur, float val, vector<key_value> &items);

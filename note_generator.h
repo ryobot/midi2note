@@ -23,11 +23,13 @@ struct note_generator {
     char buf[128];
     char ref[128];
     char mask[128];
+    char init_buf[128];
     bool completed;
+    bool include_none;
     int beat_pos;
     int generators_num;
     
-    void init(notes &last_note, char* _mask, int note_generators);
+    void init(notes &last_note, char* _mask, int note_generators, bool _include_none = false);
     void iterate(int in);
     char* get_note();
     bool maskChk();
