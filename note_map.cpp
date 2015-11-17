@@ -155,7 +155,7 @@ int get_possible_map_index(var_data &prev, var_data &cur, vector<int> &checkInde
 
 int make_map(char* buf_prev, char* buf_cur, float val, vector<key_value> &items) {
     key_value item;
-    int num_tones = 0;
+    //int num_tones = 0;
     char wbuf[16];
     strcpy(item.key, "");
     int offset = NOTE_NUM_OFFSET - MIN_NOTE_POS;
@@ -164,11 +164,11 @@ int make_map(char* buf_prev, char* buf_cur, float val, vector<key_value> &items)
     for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
         if ( buf_prev[i] == 'o' ) {
             strcat(item.key, n_note_nums[i + offset]);
-            num_tones++;
+            //num_tones++;
         }
         else if ( buf_prev[i] == '+' ) {
             strcat(item.key, c_note_nums[i + offset]);
-            num_tones++;
+            //num_tones++;
         }
     }
     strcat(item.key, ">");
@@ -177,51 +177,65 @@ int make_map(char* buf_prev, char* buf_cur, float val, vector<key_value> &items)
     for (int i = MIN_NOTE_POS; i < MAX_NOTE_POS; i++ ) {
         if ( buf_cur[i] == 'o' ) {
             strcat(item.key, n_note_nums[i + offset]);
-            num_tones++;
+            //num_tones++;
         }
         else if ( buf_cur[i] == '+' ) {
             strcat(item.key, c_note_nums[i + offset]);
-            num_tones++;
+            //num_tones++;
         }
     }
-    item.val = (float)num_tones;
+    //item.val = (float)num_tones;
+    item.val = val;
     item.init_val = 0;
     item.x_val = -1;
     item.updated = true;
     items.push_back(item);
 }
 
-int make_maps(var_data &prev, var_data &cur, vector<key_value> &items) {
+int make_maps(var_data &prev, var_data &cur, vector<key_value> &items, int vMode) {
+    //printf ("value mode : %d\n", vMode);
     items.clear();
     float total = (float)(prev.note_cnt() + cur.note_cnt());
-    int possible_map_cnt = 0;
+    //printf ("total:%f\n%s:cnt%d\n%s:cnt%d\n", total, prev.strs[0].str,prev.note_cnt(), cur.strs[0].str,cur.note_cnt());
+    //int possible_map_cnt = 0;
     vector<int> checkIndex;
     int checks = get_possible_map_index(prev, cur, checkIndex);
     for (int i = 0; i < prev.strs.size(); i++) {
         for (int j = 0; j < cur.strs.size(); j++) {
+            float val = 1.0;
+            switch (vMode) {
+                case VALUE_BY_NOTE_NUM:
+                    val = (float)(prev.strs[i].note_cnt + cur.strs[j].note_cnt);
+                    break;
+                case VALUE_DIVIDED_NOTE_NUM:
+                    if ( total == 0 ) val = 1;
+                    else val = (float)(prev.strs[i].note_cnt + cur.strs[j].note_cnt)/total;
+                    break;
+                case VALUE_SAME_NOTE_NUM:
+                default:
+                    break;
+            }
             if ( i == 0 && j == 0 ) {
-                make_map(prev.strs[0].str, cur.strs[0].str, 1.0, items);
+                make_map(prev.strs[0].str, cur.strs[0].str, val, items);
                 //possible_map_cnt++;
             }
             else {
                 //if ( cur.typebits == 0 || is_possible_map(prev.strs[i].str, cur.strs[j].str, prev.strs[0].str, cur.strs[0].str) ) {
                 if ( cur.typebits == 0 || is_possible_map_indexed(prev.strs[i].str, cur.strs[j].str, prev.strs[0].str, cur.strs[0].str, checkIndex) ) {
-                    //float val = (float)(prev.strs[i].note_cnt + cur.strs[j].note_cnt)/(float)total;
-                    float val = 1.0;
                     make_map(prev.strs[i].str, cur.strs[j].str, val, items);
-                    possible_map_cnt++;
+                    //possible_map_cnt++;
                 }
             }
         }
     }
     /*
-    for (int i = 1; i < items.size(); i++) {
+    for (int i = 0; i < items.size(); i++) {
         items[i].val /= (float)possible_map_cnt;
     }
-     */
+    */
 }
 
-int note2map(vector<notes> &notes, vector<key_value> &map, int timing_res, bool verbose) {
+int note2map(vector<notes> &notes, vector<key_value> &map, int vMode, int timing_res, bool verbose) {
     vector<key_value> items;
     var_data varData[2];
     int current = 0;
@@ -235,7 +249,7 @@ int note2map(vector<notes> &notes, vector<key_value> &map, int timing_res, bool 
         //printf ("%d\n", notes[j].time);
         // variations:
         make_vars(notes[j].note, varData[current]);
-        make_maps(varData[prev], varData[current], items);
+        make_maps(varData[prev], varData[current], items, vMode);
         // output:
         char timing_str[16];
         if ( timing_res ) {

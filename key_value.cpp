@@ -134,19 +134,10 @@ int map2reduce(vector<key_value> &items) {
     for ( int i = 0; i < items.size(); i++ ) {
         if ( strcmp(item.key, items[i].key) == 0 ) {
             item.val += items[i].val;
-            //if ( items[i].updated ) {
-            //    item.updated = items[i].updated;                
-            //} else {
-            //    item.init_val = items[i].init_val;
-            //    item.x_val = items[i].x_val;
-            //}
         } else {
             if ( i > 0 ) reduced.push_back(item);
             strcpy(item.key, items[i].key);
             item.val = items[i].val;
-            //item.updated = items[i].updated;
-            //item.init_val = items[i].init_val;
-            //item.x_val = items[i].x_val;
         }
     }
     reduced.push_back(item);

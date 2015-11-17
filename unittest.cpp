@@ -24,6 +24,12 @@ int main(int argc, char *argv[])
     load_key_value_file(argv[argc_pos++], items, reduced);
     printf ("item : %d data\n", items.size());
 
+    for ( int i = 0; i < items.size(); i++ ) {
+        if ( items[i].val >= 10 ) {
+            printf ("value : %.5f key : %s\n", items[i].val, items[i].key);
+        }
+    }
+
     char key[128];
     
     /* hash test */
@@ -40,6 +46,7 @@ int main(int argc, char *argv[])
         }
     }*/
 
+    /*
     vector<key_value> test_items;
     for ( int len = 10; len < 100; len++ ) {
         printf ("length : %d\n", len);
@@ -62,6 +69,7 @@ int main(int argc, char *argv[])
             if ( error ) printf("\e[m");
         }
     }
+    */
     
     /*
     int cnt[TABLE_LENGTH];

@@ -21,6 +21,9 @@ clock_t start, end;
 //bool continue_if_minus = false;
 int max_masks = MAX_MASKS;
 int mix = 0;
+bool acceptNoNotesMix = true;
+
+int valueMode = VALUE_BY_NOTE_NUM;
 
 char* last_note_mask(vector<key_value> &map, char* last_note, char* mask, char* timing_str) {
     strcpy(mask, "000000 : |           |           |           |           |           |           |");
@@ -335,7 +338,7 @@ float make_new_frame(
         start = end;
 
         make_vars(ng.buf, newVar);
-        make_maps(lastVar, newVar, items_add);
+        make_maps(lastVar, newVar, items_add, valueMode);
 
         end = clock();
         make_map_time += end - start;
@@ -482,6 +485,9 @@ float mix_new_frame(
     note_generator ng;
     // Including no add notes in mixing:
     bool include_none = true;
+    if ( !acceptNoNotesMix ) {
+        include_none = false;
+    }
     ng.init(last_note, ln_mask, generators, include_none);
     int cnt = 0;
 
@@ -502,7 +508,7 @@ float mix_new_frame(
         strcpy(mixed, ng.buf);
         unmask_mix(mixed, new_note.note);
         make_vars(mixed, newVar);
-        make_maps(lastVar, newVar, items_add);
+        make_maps(lastVar, newVar, items_add, valueMode);
 
         end = clock();
         make_map_time += end - start;
@@ -647,6 +653,21 @@ int main(int argc, char *argv[])
             }
         }
     }
+    acceptNoNotesMix = true;
+    if ( argc == 5 && strstr(argv[4], "n") ) {
+        acceptNoNotesMix = false;
+    }
+    if ( argc == 5 && strstr(argv[4], "l") ) {
+        if ( strstr(argv[4], "lx") ) {
+            valueMode = VALUE_BY_NOTE_NUM;
+        }
+        if ( strstr(argv[4], "l/") ) {
+            valueMode = VALUE_DIVIDED_NOTE_NUM;
+        }
+        if ( strstr(argv[4], "ls") ) {
+            valueMode = VALUE_SAME_NOTE_NUM;
+        }
+    }
     bool reduced = true;
     
     if (verbose) {
@@ -657,6 +678,22 @@ int main(int argc, char *argv[])
         printf("note generators:%d\n", generators);
         printf("generators decrement:%d\n", generators_decrement);
         printf("mixing:%d\n", num_mix);
+        if ( acceptNoNotesMix ) printf("accept no note mix:true\n");
+        else printf("accept no note mix:false\n");
+        switch (valueMode) {
+            case VALUE_BY_NOTE_NUM:
+                printf("value mode: x notenum\n");
+                break;
+            case VALUE_DIVIDED_NOTE_NUM:
+                printf("value mode: / notenum\n");
+                break;
+            case VALUE_SAME_NOTE_NUM:
+                printf("value mode: x 1\n");
+                break;
+            default:
+                printf("value mode: error\n");
+                break;
+        }
         //if ( continue_if_minus ) printf("continue if minus:true\n");
         //else printf("continue if minus:false\n");
         printf("CHANGE LOG:----\n");
@@ -672,14 +709,20 @@ int main(int argc, char *argv[])
         printf("ver.2015-10-07:MIX MODE added\n");
         printf("ver.2015-10-xx:No notes added when its correlation is best in mixing.\n");
         printf("ver.2015-10-16:Generators decrement\n");
+        printf("ver.2015-10-22:Reverted -> Values for each note transition by number of concering notes. (note_map.cpp)\n");
+        printf("ver.2015-10-23:Values for each note transition divided by number of variations.\n");
+        printf("ver.2015-11-05:Switch 'n' for bypassing 'No notes added when its correlation is best in mixing'.\n");
     }
     
     // load src notes:
     int src_len = load_note_file(argv[1], org_notes);
     
     // load reference:
-    load_key_value_file(argv[2], ref_map, reduced);
-
+    //load_key_value_file(argv[2], ref_map, reduced);
+    load_note_file(argv[2], cur_notes);
+    note2map(cur_notes, ref_map, valueMode, 4, false);
+    map2reduce(ref_map);
+    
     // make note mask:
     char mask[256];
     char allnotes[256];
@@ -701,7 +744,7 @@ int main(int argc, char *argv[])
     }
     
     // note2map
-    note2map(cur_notes, cur_map);
+    note2map(cur_notes, cur_map, valueMode);
     
     // map2reduce
     int map_len = map2reduce(cur_map);
